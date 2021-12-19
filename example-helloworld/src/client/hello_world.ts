@@ -184,6 +184,8 @@ export async function checkProgram(): Promise<void> {
       GREETING_SIZE,
     );
 
+    console.log("===========", lamports);
+
     const transaction = new Transaction().add(
       SystemProgram.createAccountWithSeed({
         fromPubkey: payer.publicKey,
