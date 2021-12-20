@@ -92,6 +92,7 @@ export async function createMessageProps(
     //msg.archive_id = msg.archive_id.replace(/[\u0010]/g, "");
     msg.created_on = msg.created_on.replace("+", "");
   });
+  // there is alignment issue, getting symbols like +, or unicode
   const filteredMessages = messages.filter(
     (msg) =>
       msg.archive_id &&

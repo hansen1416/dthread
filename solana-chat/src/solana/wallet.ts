@@ -62,6 +62,8 @@ export async function setPayerAndBlockhashTransaction(
   const transaction = new Transaction();
   transaction.add(instruction);
   transaction.feePayer = wallet!.publicKey!;
+  // Fetch a recent blockhash from the cluster, deprecated
+  // use getLatestBlockhash
   let hash = await connection.getRecentBlockhash();
   transaction.recentBlockhash = hash.blockhash;
   return transaction;
@@ -73,6 +75,9 @@ export async function signAndSendTransaction(
 ): Promise<string> {
   try {
     console.log("start signAndSendTransaction");
+    // how did it sign transaction? 
+    // https://github.com/project-serum/sol-wallet-adapter/blob/master/src/index.ts
+    // it is not using private key
     let signedTrans = await wallet.signTransaction(transaction);
     console.log("signed transaction");
     let signature = await connection.sendRawTransaction(

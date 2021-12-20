@@ -65,12 +65,17 @@ export async function getChatMessageAccountPubkey(
     space,
     programId,
   });
+  // !!! the following steps are 3 procedures in a transaction.
+  // set a transaction, sign a transaction, confirm a transaction
   let trans = await setPayerAndBlockhashTransaction(wallet, instruction);
   console.log("setPayerAndBlockhashTransaction", trans);
   let signature = await signAndSendTransaction(wallet, trans);
   console.log("signAndSendTransaction", signature);
   let result = await connection.confirmTransaction(signature, "singleGossip");
   console.log("new chat account created", result);
+  // use wallet pubket as localstorage item key,
+  // item value is the chat account pubkey, 
+  // chat account pubkey can be get by createWithSeed(wallet.publicKey,CHAT_SEED,programId)
   localStorage.setItem(
     wallet.publicKey.toBase58(),
     chatAccountPubkey.toBase58()

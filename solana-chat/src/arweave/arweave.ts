@@ -48,6 +48,7 @@ class ArweaveService {
       try {
         const chatMessage = chatMessages[i];
         console.log("chatMessage", chatMessage);
+        // read message data from arweave transactions
         const message = await this.arweave.transactions.getData(
           chatMessage.archive_id,
           { decode: true, string: true }

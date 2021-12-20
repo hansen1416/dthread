@@ -82,13 +82,20 @@ class MessageService {
     if (!sentAccount) {
       throw Error(`Account ${pubKeyStr} does not exist`);
     }
+    // lo is an alternative of borsh, mapping from binary to javascript
     const archive_id = lo.cstr("archive_id");
     const created_on = lo.cstr("created_on");
+    // lo.seq(lo.u8(), 2) is padding in between actual data
+    // this is not documented, just data structure stored by Solana
+    // simulating data structure presented in Rust, pub struct ChatMessage {...}
     const dataStruct = lo.struct(
       [archive_id, lo.seq(lo.u8(), 2), created_on, lo.seq(lo.u8(), 2)],
       "ChatMessage"
     );
+    // since we have an array of messages, 
+    // lo.seq create an array, and give it a length CHAT_MESSAGE_ELEMENTS_COUNT
     const ds = lo.seq(dataStruct, CHAT_MESSAGE_ELEMENTS_COUNT);
+    // ds is an lo object that we can call decode on the real data
     const messages = ds.decode(sentAccount.data);
     return messages;
   }
@@ -147,6 +154,7 @@ class MessageService {
     return result;
   }
 
+  // make sure the archive_id length is correct
   private getTxIdFromArweave(newTxId: string): string {
     // save message to arweave and get back txid;
     let txid = "";
@@ -159,6 +167,7 @@ class MessageService {
     return txid;
   }
 
+  // make sure the created_on length is correct
   // get value and add dummy values
   private getCreatedOn(): string {
     const now = Date.now().toString();
