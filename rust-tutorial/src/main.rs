@@ -22,7 +22,7 @@ fn main() {
         Ok(()) => {
 
         }
-        Err(e) => {
+        Err(_e) => {
 
         }
     }
@@ -55,18 +55,27 @@ impl Database {
         // };
 
         // ? euqal to error handling, if there is an error, return the error
+
+        // Rust a operating system language, doesn't have garbage colector, it has ownership
+
+        // you can never have refernce to something that is dropped, which called dangling pointer in c++
+
+        let mut map = std::collections::HashMap::new();
+
         let content = std::fs::read_to_string("kv.db")?;
 
         for line in content.lines() {
             // ' is char, " is string
             let (key, value) = line.split_once('\t').expect("Corrupt database");
+            // call to_owned() copy the memory, transfer the ownership, 
+            // so the type is String instead of &str
+            map.insert(key.to_owned(), value.to_owned());
 
             println!("key is {}, value is {}", key, value)
         }
 
-
         // parse the string
-        Result::Ok(Database {map: std::collections::HashMap::new()})
+        Result::Ok(Database {map: map})
     }
 
 
