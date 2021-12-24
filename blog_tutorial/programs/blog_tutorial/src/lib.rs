@@ -1,4 +1,6 @@
 use anchor_lang::prelude::*;
+use std::str::from_utf8;
+
 // our program id
 declare_id!("9q8k2mjwj2BMN9CePzVd2pFNjCWv5i8JzhiYUWiyJrPm");
 
@@ -11,8 +13,17 @@ pub mod blog_tutorial {
         Ok(())
     }
 
-    pub fn make_post(ctx: Context<MakePost>) -> ProgramResult {
+    pub fn make_post(ctx: Context<MakePost>, new_post: Vec<u8>) -> ProgramResult {
+        // post
+        let post = from_utf8(&new_post).map_err(|err| {
+            msg!("Invalid UTF-8, from byte {}", err.valid_up_to());
+            ProgramError::InvalidInstructionData
+        })?;
 
+        msg!(post);
+
+        let blog_acc = &mut ctx.accounts.blog_account;
+        blog_acc.latest_post = new_post;
 
         Ok(())
     }
@@ -33,14 +44,16 @@ pub struct Initialize<'info> {
     pub system_program: Program<'info, System>,
 }
 
+#[derive(Accounts)]
 pub struct MakePost<'info> {
-    #[account(mut, has_one=authority)]
+    #[account(mut, 
+        has_one=authority )]
     pub blog_account: Account<'info, BlogAccount>,
     pub authority: Signer<'info>,
 }
 
 #[account]
 pub struct BlogAccount {
-    pub latest_post: u64,
+    pub latest_post: Vec<u8>,
     pub authority: Pubkey,
 }

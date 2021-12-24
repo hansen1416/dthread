@@ -1,0 +1,14 @@
+
+.anchor
+.DS_Store
+**/*.rs.bk
+node_modules
+deploy/*-keypair.json
+deploy/dapp-config.json
+.svelte-kit
+
+# include IDL in git
+# !target/
+target/*
+# !target/idl
+# !target/idl/solblog.json
