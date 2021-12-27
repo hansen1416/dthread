@@ -1,53 +1,37 @@
 {
-  "name": "vue3-ssr",
-  "version": "0.1.0",
+  "name": "web",
+  "version": "1.0.0",
   "private": true,
   "scripts": {
-    "serve": "npx vue-cli-service serve --port 4601",
-    "build": "npx vue-cli-service build",
-    "pressr": "cross-env SSR=true npx vue-cli-service build",
-    "ssr": "npx nodemon --watch src/components -e js,ts,vue src/server.js",
-    "ssr-prod": "node src/server.js",
-    "lint": "npx vue-cli-service lint"
+    "dev": "nuxt",
+    "build": "nuxt build",
+    "start": "nuxt start",
+    "generate": "nuxt generate",
+    "lint:js": "eslint --ext \".js,.ts,.vue\" --ignore-path .gitignore .",
+    "lint": "npm run lint:js",
+    "lintfix": "npm run lint:js -- --fix"
   },
   "dependencies": {
+    "@nuxtjs/axios": "^5.13.6",
+    "@nuxtjs/pwa": "^3.3.5",
+    "@solana/wallet-adapter-base": "^0.8.1",
+    "@solana/wallet-adapter-phantom": "^0.8.1",
     "@solana/web3.js": "^1.31.0",
-    "@vue/server-renderer": "^3.0.0-rc.5",
-    "core-js": "^3.6.5",
-    "express": "^4.17.1",
-    "typescript": "^4.5.4",
-    "vue": "^3.0.0-0",
-    "webpack-manifest-plugin": "^2.2.0",
-    "webpack-node-externals": "^2.5.1"
+    "core-js": "^3.19.3",
+    "nuxt": "^2.15.8",
+    "vue": "^2.6.14",
+    "vue-server-renderer": "^2.6.14",
+    "vue-template-compiler": "^2.6.14",
+    "webpack": "^4.46.0"
   },
   "devDependencies": {
-    "@vue/cli-plugin-babel": "~4.5.0",
-    "@vue/cli-plugin-eslint": "~4.5.0",
-    "@vue/cli-service": "~4.5.0",
-    "@vue/compiler-sfc": "^3.0.0-0",
-    "babel-eslint": "^10.1.0",
-    "cross-env": "^7.0.2",
-    "eslint": "^6.7.2",
-    "eslint-plugin-vue": "^7.0.0-0",
-    "nodemon": "^2.0.15"
-  },
-  "eslintConfig": {
-    "root": true,
-    "env": {
-      "node": true
-    },
-    "extends": [
-      "plugin:vue/vue3-essential",
-      "eslint:recommended"
-    ],
-    "parserOptions": {
-      "parser": "babel-eslint"
-    },
-    "rules": {}
-  },
-  "browserslist": [
-    "> 1%",
-    "last 2 versions",
-    "not dead"
-  ]
+    "@babel/eslint-parser": "^7.16.3",
+    "@nuxt/types": "^2.15.8",
+    "@nuxt/typescript-build": "^2.1.0",
+    "@nuxtjs/eslint-config-typescript": "^8.0.0",
+    "@nuxtjs/eslint-module": "^3.0.2",
+    "eslint": "^8.4.1",
+    "eslint-plugin-nuxt": "^3.1.0",
+    "eslint-plugin-vue": "^8.2.0"
+  }
 }
