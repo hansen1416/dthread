@@ -14,6 +14,10 @@
     "debug": "node --inspect-brk server"
   },
   "dependencies": {
+    "@solana/wallet-adapter-base": "^0.8.1",
+    "@solana/wallet-adapter-phantom": "^0.8.1",
+    "@solana/wallet-adapter-vue": "^0.4.1",
+    "@solana/web3.js": "^1.31.0",
     "example-external-component": "file:example-external-component",
     "vue": "^3.2.25",
     "vue-router": "^4.0.0",
@@ -22,6 +26,7 @@
   "devDependencies": {
     "@vitejs/plugin-vue": "^2.0.1",
     "@vitejs/plugin-vue-jsx": "^1.3.3",
+    "@vue/compiler-sfc": "^3.2.26",
     "compression": "^1.7.4",
     "cross-env": "^7.0.3",
     "express": "^4.17.1",

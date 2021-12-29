@@ -1,3 +1,6 @@
 test-ledger
 node_modules/
 target/
+dist/
+.nuxt
+.output

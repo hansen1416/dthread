@@ -26,6 +26,10 @@ function load(file) {
 const url = import.meta.env.SSR
   ? import.meta.url
   : document.querySelector('.import-meta-url').textContent
+
+// const url = import.meta.env.SSR
+//   ? import.meta.url : ''
+
 const protocol = new URL(url).protocol
 
 const state = reactive({

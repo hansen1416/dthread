@@ -9,5 +9,9 @@ export function createApp() {
   const app = createSSRApp(App)
   const router = createRouter()
   app.use(router)
+
+
+  app.config.globalProperties.$abc = 'some global property'
+
   return { app, router }
 }
