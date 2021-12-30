@@ -7,6 +7,8 @@ import {
 	clusterApiUrl,
 	PublicKey,
 } from "@solana/web3.js";
+import PhantomWallet from "../assets/phantom";
+import { popInfo } from "../helpers/notifications";
 
 // interface Book {
 //   title: string
@@ -20,11 +22,11 @@ export default defineComponent({
 		username: String,
 	},
 	/**
-  The new setup component option is executed before the component is created, 
+  The new setup component option is executed before the component is created,
   once the props are resolved, and serves as the entry point for composition APIs.
 
-  You should avoid using this inside setup as it won't refer to the component instance. 
-  setup is called before data properties, computed properties or methods are resolved, 
+  You should avoid using this inside setup as it won't refer to the component instance.
+  setup is called before data properties, computed properties or methods are resolved,
   so they won't be available within setup.
 
   window is not defined
@@ -37,54 +39,28 @@ export default defineComponent({
 	// `beforeCreate` run after `setup`
 	beforeCreate() {},
 	// `created run after` `beforeCreate`
-	created() {},
+	created() {
+		if (!import.meta.env.SSR) {
+			const wallet = new PhantomWallet();
+			wallet
+				.connect()
+				.then((pubkey: PublicKey) => {
+					console.log("onCreated", pubkey.toString());
+				})
+				.catch((e: any) => {
+					if (e.message) {
+						popInfo(e.message);
+					} else {
+						popInfo("unable to connect wallet");
+					}
+				});
+		}
+	},
 	data() {
 		return {};
 	},
 	computed: {},
-	mounted() {
-		if (!import.meta.env.SSR) {
-			(async () => {
-				let connection = new Connection(clusterApiUrl("devnet"));
-				let providerUrl = "https://www.sollet.io";
-				// let wallet = new Wallet(providerUrl);
-
-				// console.log(connection);
-
-				// wallet.on('connect', (publicKey: PublicKey) => {
-				//   console.log('Connected to ' + publicKey.toBase58());
-				// });
-
-				// wallet.on('disconnect', () => {
-				//   console.log('Disconnected')
-				// });
-
-				// await wallet.connect();
-
-				// let transaction = SystemProgram.transfer({
-				//   fromPubkey: wallet.publicKey,
-				//   toPubkey: wallet.publicKey,
-				//   lamports: 100,
-				// });
-
-				// let { blockhash } = await connection.getRecentBlockhash();
-
-				// console.log('blockhash', blockhash);
-
-				// transaction.recentBlockhash = blockhash;
-
-				// let signed = await wallet.signTransaction(transaction);
-				// let txid = await connection.sendRawTransaction(signed.serialize());
-
-				// console.log('signed', signed);
-				// console.log('txid', txid);
-
-				// const res = await connection.confirmTransaction(txid);
-
-				// console.log('res', res);
-			})();
-		}
-	},
+	mounted() {},
 });
 </script>
 
