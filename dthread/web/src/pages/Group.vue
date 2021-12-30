@@ -1,13 +1,12 @@
-<script lang='ts'>
-import { defineComponent, ref } from 'vue'
+<script lang="ts">
+import { defineComponent, ref } from "vue";
 // import { WalletAdapterNetwork } from '@solana/wallet-adapter-base';
-import { 
-  Connection, 
-  SystemProgram, 
-  clusterApiUrl,
-  PublicKey,
-} from '@solana/web3.js';
-
+import {
+	Connection,
+	SystemProgram,
+	clusterApiUrl,
+	PublicKey,
+} from "@solana/web3.js";
 
 // interface Book {
 //   title: string
@@ -16,13 +15,11 @@ import {
 // }
 
 export default defineComponent({
-  serverPrefetch() {
-    
-  },
-  props: {
-    username: String 
-  },
-  /**
+	serverPrefetch() {},
+	props: {
+		username: String,
+	},
+	/**
   The new setup component option is executed before the component is created, 
   once the props are resolved, and serves as the entry point for composition APIs.
 
@@ -32,83 +29,67 @@ export default defineComponent({
 
   window is not defined
   */
-  setup(props) {
-    if (import.meta.env.SSR) {
+	setup(props) {
+		if (import.meta.env.SSR) {
+		} else {
+		}
+	},
+	// `beforeCreate` run after `setup`
+	beforeCreate() {},
+	// `created run after` `beforeCreate`
+	created() {},
+	data() {
+		return {};
+	},
+	computed: {},
+	mounted() {
+		if (!import.meta.env.SSR) {
+			(async () => {
+				let connection = new Connection(clusterApiUrl("devnet"));
+				let providerUrl = "https://www.sollet.io";
+				// let wallet = new Wallet(providerUrl);
 
-    } else {
+				// console.log(connection);
 
-    }
-  },
-  // `beforeCreate` run after `setup`
-  beforeCreate() {
-    
-  },
-  // `created run after` `beforeCreate`
-  created() {
+				// wallet.on('connect', (publicKey: PublicKey) => {
+				//   console.log('Connected to ' + publicKey.toBase58());
+				// });
 
-  },
-  data() {
-    return {
+				// wallet.on('disconnect', () => {
+				//   console.log('Disconnected')
+				// });
 
-    }
-  },
-  computed: {
+				// await wallet.connect();
 
-  },
-  mounted() {
-    if (!import.meta.env.SSR) {
+				// let transaction = SystemProgram.transfer({
+				//   fromPubkey: wallet.publicKey,
+				//   toPubkey: wallet.publicKey,
+				//   lamports: 100,
+				// });
 
-      ;(async() => {
+				// let { blockhash } = await connection.getRecentBlockhash();
 
-        let connection = new Connection(clusterApiUrl('devnet'));
-        let providerUrl = 'https://www.sollet.io';
-        // let wallet = new Wallet(providerUrl);
+				// console.log('blockhash', blockhash);
 
-        // console.log(connection);
+				// transaction.recentBlockhash = blockhash;
 
-        // wallet.on('connect', (publicKey: PublicKey) => {
-        //   console.log('Connected to ' + publicKey.toBase58());
-        // });
+				// let signed = await wallet.signTransaction(transaction);
+				// let txid = await connection.sendRawTransaction(signed.serialize());
 
-        // wallet.on('disconnect', () => {
-        //   console.log('Disconnected')
-        // });
+				// console.log('signed', signed);
+				// console.log('txid', txid);
 
-        // await wallet.connect();
+				// const res = await connection.confirmTransaction(txid);
 
-        // let transaction = SystemProgram.transfer({
-        //   fromPubkey: wallet.publicKey,
-        //   toPubkey: wallet.publicKey,
-        //   lamports: 100,
-        // });
-
-        // let { blockhash } = await connection.getRecentBlockhash();
-
-        // console.log('blockhash', blockhash);
-
-        // transaction.recentBlockhash = blockhash;
-
-        // let signed = await wallet.signTransaction(transaction);
-        // let txid = await connection.sendRawTransaction(signed.serialize());
-
-        // console.log('signed', signed);
-        // console.log('txid', txid);
-
-        // const res = await connection.confirmTransaction(txid);
-
-        // console.log('res', res);
-
-      })();
-    }
-  },
-
-})
+				// console.log('res', res);
+			})();
+		}
+	},
+});
 </script>
 
 <template>
-    <div>group page</div>
+	<div>group page</div>
 </template>
 
-<style scoped>
-
-</style>
+<style scoped></style>
