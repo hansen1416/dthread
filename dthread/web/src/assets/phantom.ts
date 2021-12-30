@@ -1,12 +1,10 @@
-import { PublicKey } from "@solana/web3.js";
+import { PublicKey, Connection } from "@solana/web3.js";
 
-interface connectionResponse {
-	publicKey: PublicKey;
-}
+const RPC_URL = "http://127.0.0.1:8899";
 
 export default class PhantomWallet {
 	provider: any;
-	pubkey?: string;
+	// pubkey?: string;
 
 	constructor() {
 		if ("solana" in window) {
@@ -28,13 +26,34 @@ export default class PhantomWallet {
 		 * or page refreshes. This is often called "eagerly connecting".
 		 * To implement this, pass `onlyIfTrusted: true` to connect().
 		 */
-
-		const resp: connectionResponse = await this.provider.connect({
-			onlyIfTrusted: import.meta.env.PROD,
-		});
+		const { publicKey }: { publicKey: PublicKey } =
+			await this.provider.connect({
+				RPC_URL,
+				onlyIfTrusted: import.meta.env.PROD,
+			});
 
 		return new Promise<PublicKey>((resolve) => {
-			resolve(resp.publicKey);
+			resolve(publicKey);
+		});
+	}
+
+	async disconnect(): Promise<boolean> {
+		await this.provider.disconnect();
+
+		return new Promise((resolve) => {
+			resolve(true);
+		});
+	}
+
+	async getBalance(): Promise<number> {
+		const connection = new Connection(RPC_URL, "confirmed");
+
+		const balance: number = await connection.getBalance(
+			this.provider.publicKey
+		);
+
+		return new Promise((resolve) => {
+			resolve(balance);
 		});
 	}
 }

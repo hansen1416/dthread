@@ -41,11 +41,35 @@ export default defineComponent({
 	// `created run after` `beforeCreate`
 	created() {
 		if (!import.meta.env.SSR) {
-			const wallet = new PhantomWallet();
-			wallet
+		}
+	},
+	data(): {
+		wallet: PhantomWallet;
+		pubKey: string;
+		walletBalance: number;
+	} {
+		return {
+			wallet: undefined as PhantomWallet,
+			pubKey: "",
+			walletBalance: 0,
+		};
+	},
+	computed: {},
+	mounted() {},
+	methods: {
+		connectWallet(e: Event) {
+			this.wallet = new PhantomWallet();
+
+			this.wallet
 				.connect()
 				.then((pubkey: PublicKey) => {
-					console.log("onCreated", pubkey.toString());
+					this.pubKey = pubkey.toString();
+
+					// console.log(this.wallet.provider.publicKey);
+
+					this.wallet.getBalance().then((balance) => {
+						this.walletBalance = balance;
+					});
 				})
 				.catch((e: any) => {
 					if (e.message) {
@@ -54,18 +78,38 @@ export default defineComponent({
 						popInfo("unable to connect wallet");
 					}
 				});
-		}
+		},
+		disconnectWallet(e: Event) {
+			if (this.wallet) {
+				this.wallet.disconnect().then((res: boolean) => {
+					if (res) {
+						this.wallet = undefined;
+						this.pubKey = "";
+
+						popInfo("wallet disconnected");
+					}
+				});
+			}
+		},
 	},
-	data() {
-		return {};
-	},
-	computed: {},
-	mounted() {},
 });
 </script>
 
 <template>
-	<div>group page</div>
+	<div>
+		<button @click="connectWallet">connect wallet</button>
+	</div>
+	<div>
+		<button @click="disconnectWallet">disconnect wallet</button>
+	</div>
+	<div v-if="pubKey">
+		<p>
+			public key is: <span>{{ pubKey }}</span>
+		</p>
+		<p>
+			balance is: <span>{{ walletBalance }}</span>
+		</p>
+	</div>
 </template>
 
 <style scoped></style>
