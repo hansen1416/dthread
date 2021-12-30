@@ -1,6 +1,12 @@
 <script lang='ts'>
 import { defineComponent, ref } from 'vue'
-import { WalletAdapterNetwork } from '@solana/wallet-adapter-base';
+// import { WalletAdapterNetwork } from '@solana/wallet-adapter-base';
+import { 
+  Connection, 
+  SystemProgram, 
+  clusterApiUrl,
+  PublicKey,
+} from '@solana/web3.js';
 
 
 // interface Book {
@@ -14,7 +20,7 @@ export default defineComponent({
     
   },
   props: {
-    // username: String 
+    username: String 
   },
   /**
   The new setup component option is executed before the component is created, 
@@ -30,48 +36,70 @@ export default defineComponent({
     if (import.meta.env.SSR) {
 
     } else {
-      console.log(window.solana);
+
     }
   },
-  // beforeCreate run after `setup`
+  // `beforeCreate` run after `setup`
   beforeCreate() {
-
+    
   },
-  // created run after `beforeCreate`
+  // `created run after` `beforeCreate`
   created() {
-    // console.log(WalletAdapterNetwork);
-    // if (import.meta.env.SSR) {
 
-    // } else {
-    //   console.log(window.solana);
-    // }
   },
   data() {
     return {
-      // book: {
-      //   title: 'Vue 3 Guide',
-      //   author: 'Vue Team',
-      //   year: 2020
-      // } as Book
+
     }
   },
   computed: {
-    // books(): Book{
-    //   let books = {
-    //     title: 'Vue 3 Guide',
-    //     author: 'Vue Team',
-    //     year: 2020
-    //   }
 
-    //   console.log(123123123);
-
-    //   return books
-    // }
   },
   mounted() {
-    // const result = this.book // => Property 'split' does not exist on type 'number'
+    if (!import.meta.env.SSR) {
 
-    // console.log(result, this.goblin, this.egg);
+      ;(async() => {
+
+        let connection = new Connection(clusterApiUrl('devnet'));
+        let providerUrl = 'https://www.sollet.io';
+        // let wallet = new Wallet(providerUrl);
+
+        // console.log(connection);
+
+        // wallet.on('connect', (publicKey: PublicKey) => {
+        //   console.log('Connected to ' + publicKey.toBase58());
+        // });
+
+        // wallet.on('disconnect', () => {
+        //   console.log('Disconnected')
+        // });
+
+        // await wallet.connect();
+
+        // let transaction = SystemProgram.transfer({
+        //   fromPubkey: wallet.publicKey,
+        //   toPubkey: wallet.publicKey,
+        //   lamports: 100,
+        // });
+
+        // let { blockhash } = await connection.getRecentBlockhash();
+
+        // console.log('blockhash', blockhash);
+
+        // transaction.recentBlockhash = blockhash;
+
+        // let signed = await wallet.signTransaction(transaction);
+        // let txid = await connection.sendRawTransaction(signed.serialize());
+
+        // console.log('signed', signed);
+        // console.log('txid', txid);
+
+        // const res = await connection.confirmTransaction(txid);
+
+        // console.log('res', res);
+
+      })();
+    }
   },
 
 })
