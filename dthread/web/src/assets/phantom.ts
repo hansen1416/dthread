@@ -1,10 +1,11 @@
 import { PublicKey, Connection } from "@solana/web3.js";
+import { RPC_URL } from "../constants/index";
 
-const RPC_URL = "http://127.0.0.1:8899";
-
+/**
+ * phantom wallet adapter
+ */
 export default class PhantomWallet {
 	provider: any;
-	// pubkey?: string;
 
 	constructor() {
 		if ("solana" in window) {
@@ -42,18 +43,6 @@ export default class PhantomWallet {
 
 		return new Promise((resolve) => {
 			resolve(true);
-		});
-	}
-
-	async getBalance(): Promise<number> {
-		const connection = new Connection(RPC_URL, "confirmed");
-
-		const balance: number = await connection.getBalance(
-			this.provider.publicKey
-		);
-
-		return new Promise((resolve) => {
-			resolve(balance);
 		});
 	}
 }

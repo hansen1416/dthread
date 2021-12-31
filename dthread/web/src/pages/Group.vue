@@ -8,6 +8,7 @@ import {
 	PublicKey,
 } from "@solana/web3.js";
 import PhantomWallet from "../assets/phantom";
+import SolanaConnection from "../solana/connection";
 import { popInfo } from "../helpers/notifications";
 
 // interface Book {
@@ -41,14 +42,17 @@ export default defineComponent({
 	// `created run after` `beforeCreate`
 	created() {
 		if (!import.meta.env.SSR) {
+			this.solanaConn = new SolanaConnection();
 		}
 	},
 	data(): {
+		solanaConn: SolanaConnection;
 		wallet: PhantomWallet;
 		pubKey: string;
 		walletBalance: number;
 	} {
 		return {
+			solanaConn: undefined as SolanaConnection,
 			wallet: undefined as PhantomWallet,
 			pubKey: "",
 			walletBalance: 0,
@@ -67,7 +71,7 @@ export default defineComponent({
 
 					// console.log(this.wallet.provider.publicKey);
 
-					this.wallet.getBalance().then((balance) => {
+					this.solanaConn.getBalance(pubkey).then((balance) => {
 						this.walletBalance = balance;
 					});
 				})
