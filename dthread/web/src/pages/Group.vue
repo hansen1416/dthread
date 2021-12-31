@@ -12,6 +12,7 @@ import {
 import PhantomWallet from "../wallets/phantom";
 import SolanaConnection from "../solana/connection";
 import { popInfo } from "../helpers/notifications";
+import { GROUPS_PROGRAM_ID } from "../constants/index";
 
 export default defineComponent({
 	serverPrefetch() {},
@@ -130,13 +131,16 @@ export default defineComponent({
 			// e.g. in our case, we can create an account from user publick key, program id and group name
 			// this way, we'd have an entrypoint account we fetch the initial data of a certain user,
 			// the initial data is going to be a hash, the actual content is stored in IPFS/Arweave
-			// PublicKey.createWithSeed(
-			// 	wallet.publicKey,
-			// 	CHAT_SEED,
-			// 	programId
-			// ).then((res) => {
-			// 	console.log(res);
-			// });
+
+			const CHAT_SEED = "abcgroup";
+
+			PublicKey.createWithSeed(
+				this.pubKey,
+				CHAT_SEED,
+				new PublicKey(GROUPS_PROGRAM_ID)
+			).then((res: PublicKey) => {
+				console.log(res.toString());
+			});
 		},
 	},
 });
@@ -154,6 +158,9 @@ export default defineComponent({
 	</div>
 	<div>
 		<button @click="disconnectWallet">disconnect wallet</button>
+	</div>
+	<div>
+		<button @click="createDerivedAccount">create account with seed</button>
 	</div>
 	<div v-if="pubKey">
 		<p>
