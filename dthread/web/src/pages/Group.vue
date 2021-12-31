@@ -1,21 +1,17 @@
 <script lang="ts">
 import { defineComponent, ref } from "vue";
-// import { WalletAdapterNetwork } from '@solana/wallet-adapter-base';
 import {
+	AccountInfo,
 	Connection,
 	SystemProgram,
 	clusterApiUrl,
 	PublicKey,
+	LAMPORTS_PER_SOL,
+	MAX_SEED_LENGTH,
 } from "@solana/web3.js";
-import PhantomWallet from "../assets/phantom";
+import PhantomWallet from "../wallets/phantom";
 import SolanaConnection from "../solana/connection";
 import { popInfo } from "../helpers/notifications";
-
-// interface Book {
-//   title: string
-//   author: string
-//   year: number
-// }
 
 export default defineComponent({
 	serverPrefetch() {},
@@ -48,32 +44,28 @@ export default defineComponent({
 	data(): {
 		solanaConn: SolanaConnection;
 		wallet: PhantomWallet;
-		pubKey: string;
+		pubKey: PublicKey;
 		walletBalance: number;
 	} {
 		return {
 			solanaConn: undefined as SolanaConnection,
 			wallet: undefined as PhantomWallet,
-			pubKey: "",
+			pubKey: undefined as PublicKey,
 			walletBalance: 0,
 		};
 	},
 	computed: {},
-	mounted() {},
+	mounted() {
+		// console.log(LAMPORTS_PER_SOL, MAX_SEED_LENGTH);
+	},
 	methods: {
 		connectWallet(e: Event) {
 			this.wallet = new PhantomWallet();
 
 			this.wallet
 				.connect()
-				.then((pubkey: PublicKey) => {
-					this.pubKey = pubkey.toString();
-
-					// console.log(this.wallet.provider.publicKey);
-
-					this.solanaConn.getBalance(pubkey).then((balance) => {
-						this.walletBalance = balance;
-					});
+				.then((publicKey: PublicKey) => {
+					this.pubKey = publicKey;
 				})
 				.catch((e: any) => {
 					if (e.message) {
@@ -88,12 +80,63 @@ export default defineComponent({
 				this.wallet.disconnect().then((res: boolean) => {
 					if (res) {
 						this.wallet = undefined;
-						this.pubKey = "";
+						this.pubKey = undefined;
 
 						popInfo("wallet disconnected");
 					}
 				});
+			} else {
+				popInfo("wallet not connected");
 			}
+		},
+		getWalletBalance(e: Event) {
+			if (this.pubKey) {
+				this.solanaConn.conn
+					.getBalance(this.pubKey)
+					.then((balance: number) => {
+						this.walletBalance = balance;
+					})
+					.catch((e: any) => {
+						popInfo("get account balance failed", e);
+					});
+			} else {
+				popInfo("public key is not defined");
+			}
+		},
+		getAccountInfo(e: Event) {
+			if (this.pubKey) {
+				this.solanaConn.conn
+					.getAccountInfo(this.pubKey)
+					.then((accountInfo: AccountInfo) => {
+						// accountInfo.owner.toString(),
+						// owner is system account '11111111111111111111111111111111'
+						console.info(accountInfo);
+					})
+					.catch((e: any) => {
+						popInfo("get account info failed", e);
+					});
+			} else {
+				popInfo("public key is not defined");
+			}
+		},
+		createDerivedAccount(e: Event) {
+			/**
+			 * Derive a public key from another key, a seed, and a program ID.
+			 * The program ID will also serve as the owner of the public key, giving
+			 * it permission to write data to the account.
+			 */
+			// !!! create an publickey that is owned by `programId`, and associate with the `wallet.publicKey`
+			// CHAT_SEED is some fixed value
+			// e.g. in our case, we can create an account from user publick key, program id and group name
+			// this way, we'd have an entrypoint account we fetch the initial data of a certain user,
+			// the initial data is going to be a hash, the actual content is stored in IPFS/Arweave
+			// PublicKey.createWithSeed(
+			// 	wallet.publicKey,
+			// 	CHAT_SEED,
+			// 	programId
+			// ).then((res) => {
+			// 	console.log(res);
+			// });
 		},
 	},
 });
@@ -104,12 +147,20 @@ export default defineComponent({
 		<button @click="connectWallet">connect wallet</button>
 	</div>
 	<div>
+		<button @click="getWalletBalance">get wallet balance</button>
+	</div>
+	<div>
+		<button @click="getAccountInfo">get account info</button>
+	</div>
+	<div>
 		<button @click="disconnectWallet">disconnect wallet</button>
 	</div>
 	<div v-if="pubKey">
 		<p>
-			public key is: <span>{{ pubKey }}</span>
+			public key is: <span>{{ pubKey.toString() }}</span>
 		</p>
+	</div>
+	<div v-if="walletBalance">
 		<p>
 			balance is: <span>{{ walletBalance }}</span>
 		</p>
