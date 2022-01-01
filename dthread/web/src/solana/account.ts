@@ -65,7 +65,26 @@ export async function createFromSeed(
 	let hash = await conn.getRecentBlockhash();
 	transaction.recentBlockhash = hash.blockhash;
 
-	console.log(transaction);
+	// console.log(transaction);
+
+	try {
+		console.log("start signAndSendTransaction");
+		// how did it sign transaction?
+		// https://github.com/project-serum/sol-wallet-adapter/blob/master/src/index.ts
+		// it is not using private key
+		// pay more attention to this, add as much log as I can
+		let signature: string = await walletAdapter.signAndSendTransaction(
+			conn,
+			transaction
+		);
+		console.log("signed transaction", signature);
+
+		let result = await conn.confirmTransaction(signature, "singleGossip");
+		console.log("new chat account created", result);
+	} catch (err) {
+		console.log("signAndSendTransaction error", err);
+		throw err;
+	}
 
 	return new Promise((resolve) => {
 		resolve();

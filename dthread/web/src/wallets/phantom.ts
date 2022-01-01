@@ -1,4 +1,9 @@
-import { PublicKey, Transaction } from "@solana/web3.js";
+import {
+	Connection,
+	PublicKey,
+	Transaction,
+	SignatureResult,
+} from "@solana/web3.js";
 import { RPC_URL } from "../constants/index";
 import { WalletAdapter } from "../interfaces/index";
 
@@ -7,9 +12,11 @@ import { WalletAdapter } from "../interfaces/index";
  */
 export default class PhantomWallet implements WalletAdapter {
 	provider: any;
-	publicKey?: PublicKey;
+	publicKey: PublicKey | null;
 
 	constructor() {
+		this.publicKey = null;
+
 		if ("solana" in window) {
 			const provider = window.solana;
 			if (provider.isPhantom) {
@@ -50,9 +57,21 @@ export default class PhantomWallet implements WalletAdapter {
 		});
 	}
 
-	// async signTransaction(transaction: Transaction): Promise<Transaction> {
-	// 	return new Promise((resolve) => {
-	// 		resolve(true);
-	// 	});
-	// }
+	async signAndSendTransaction(
+		connection: Connection,
+		transaction: Transaction
+	): Promise<string> {
+		// the reconneced method is `signAndSendTransaction`
+		// but it gives error -32003 RPC Error, transaction creation failed
+		const signedTransaction: Transaction =
+			await this.provider.signTransaction(transaction);
+
+		const signature: string = await connection.sendRawTransaction(
+			signedTransaction.serialize()
+		);
+
+		return new Promise((resolve) => {
+			resolve(signature);
+		});
+	}
 }
