@@ -10,9 +10,10 @@ import {
 	MAX_SEED_LENGTH,
 } from "@solana/web3.js";
 import PhantomWallet from "../wallets/phantom";
-import SolanaConnection from "../solana/connection";
 import { popInfo } from "../helpers/notifications";
 import { GROUPS_PROGRAM_ID } from "../constants/index";
+import { createFromSeed } from "../solana/account";
+import { RPC_URL } from "../constants/index";
 
 export default defineComponent({
 	serverPrefetch() {},
@@ -39,23 +40,31 @@ export default defineComponent({
 	// `created run after` `beforeCreate`
 	created() {
 		if (!import.meta.env.SSR) {
-			this.solanaConn = new SolanaConnection();
 		}
 	},
 	data(): {
-		solanaConn: SolanaConnection;
+		solanaConn: Connection;
 		wallet: PhantomWallet;
 		pubKey: PublicKey;
 		walletBalance: number;
 	} {
 		return {
-			solanaConn: undefined as SolanaConnection,
+			solanaConn: undefined as Connection,
 			wallet: undefined as PhantomWallet,
 			pubKey: undefined as PublicKey,
 			walletBalance: 0,
 		};
 	},
-	computed: {},
+	computed: {
+		getSolanaConn: {
+			get(): Connection {
+				if (this.solanaConn === undefined) {
+					this.solanaConn = new Connection(RPC_URL, "confirmed");
+				}
+				return this.solanaConn;
+			},
+		},
+	},
 	mounted() {
 		// console.log(LAMPORTS_PER_SOL, MAX_SEED_LENGTH);
 	},
@@ -92,7 +101,7 @@ export default defineComponent({
 		},
 		getWalletBalance(e: Event) {
 			if (this.pubKey) {
-				this.solanaConn.conn
+				this.getSolanaConn
 					.getBalance(this.pubKey)
 					.then((balance: number) => {
 						this.walletBalance = balance;
@@ -106,7 +115,7 @@ export default defineComponent({
 		},
 		getAccountInfo(e: Event) {
 			if (this.pubKey) {
-				this.solanaConn.conn
+				this.getSolanaConn
 					.getAccountInfo(this.pubKey)
 					.then((accountInfo: AccountInfo) => {
 						// accountInfo.owner.toString(),
@@ -122,57 +131,18 @@ export default defineComponent({
 		},
 		createDerivedAccount(e: Event) {
 			const GROUP_SEED = "abcgroup";
+			const space = 32;
 
-			(async () => {
-				const groups_program_id = new PublicKey(GROUPS_PROGRAM_ID);
-
-				const space = 32;
-
-				const lamports =
-					await this.solanaConn.conn.getMinimumBalanceForRentExemption(
-						space
-					);
-
-				/**
-				 * Derive a public key from another key, a seed, and a program ID.
-				 * The program ID will also serve as the owner of the public key, giving
-				 * it permission to write data to the account.
-				 */
-				// !!! create an publickey that is owned by `programId`, and associate with the `wallet.publicKey`
-				// GROUP_SEED is some fixed value
-				// e.g. in our case, we can create an account from user publick key, program id and group name
-				// this way, we'd have an entrypoint account we fetch the initial data of a certain user,
-				// the initial data is going to be a hash, the actual content is stored in IPFS/Arweave
-				const derivedPubKey = await PublicKey.createWithSeed(
-					this.pubKey,
-					GROUP_SEED,
-					groups_program_id
-				);
-
-				console.log(lamports);
-
-				// !!! when we have a pubkey associate user's pubkey, program, and groupname,
-				// we create a account by this pubkey,
-				// the source code is at `CreateAccountWithSeedParams` in web3js
-				// basePubkey: Base public key to use to derive the address of the created account. Must be the same as the base key used to create newAccountPubkey
-				// fromPubkey: The account that will transfer lamports to the created account
-				// newAccountPubkey: the pub address derived from user's pubkey, programid and seed
-				// lamports:
-				// programId:
-				// seed: Seed to use to derive the address of the created account. Must be the same as the seed used to create newAccountPubkey
-				// spae: Amount of space in bytes to allocate to the created account, the space is immutable, and cost money
-				const instruction = SystemProgram.createAccountWithSeed({
-					fromPubkey: this.pubKey,
-					basePubkey: this.pubKey,
-					seed: GROUP_SEED,
-					newAccountPubkey: derivedPubKey,
-					lamports: lamports,
-					space: space,
-					programId: groups_program_id,
-				});
-
-				console.log(instruction);
-			})();
+			createFromSeed(
+				this.getSolanaConn,
+				this.wallet.provider,
+				new PublicKey(GROUPS_PROGRAM_ID),
+				this.pubKey,
+				GROUP_SEED,
+				space
+			).then(() => {
+				console.log("");
+			});
 		},
 	},
 });
