@@ -1,11 +1,13 @@
-import { PublicKey, Connection } from "@solana/web3.js";
+import { PublicKey, Transaction } from "@solana/web3.js";
 import { RPC_URL } from "../constants/index";
+import { WalletAdapter } from "../interfaces/index";
 
 /**
  * phantom wallet adapter
  */
-export default class PhantomWallet {
+export default class PhantomWallet implements WalletAdapter {
 	provider: any;
+	publicKey?: PublicKey;
 
 	constructor() {
 		if ("solana" in window) {
@@ -33,6 +35,8 @@ export default class PhantomWallet {
 				onlyIfTrusted: import.meta.env.PROD,
 			});
 
+		this.publicKey = publicKey;
+
 		return new Promise<PublicKey>((resolve) => {
 			resolve(publicKey);
 		});
@@ -45,4 +49,10 @@ export default class PhantomWallet {
 			resolve(true);
 		});
 	}
+
+	// async signTransaction(transaction: Transaction): Promise<Transaction> {
+	// 	return new Promise((resolve) => {
+	// 		resolve(true);
+	// 	});
+	// }
 }

@@ -8,18 +8,16 @@ import {
 	RpcResponseAndContext,
 	SignatureResult,
 } from "@solana/web3.js";
+import { WalletAdapter } from "../interfaces/index";
 
 export async function createFromSeed(
 	conn: Connection,
-	walletProvider: any,
+	walletAdapter: WalletAdapter,
 	programId: PublicKey,
-	basePubkey: PublicKey,
 	seed: string,
 	space: number
 ): Promise<void> {
 	const lamports = await conn.getMinimumBalanceForRentExemption(space);
-
-	console.log(walletProvider.publicKey);
 
 	/**
 	 * Derive a public key from another key, a seed, and a program ID.
@@ -32,7 +30,7 @@ export async function createFromSeed(
 	// this way, we'd have an entrypoint account we fetch the initial data of a certain user,
 	// the initial data is going to be a hash, the actual content is stored in IPFS/Arweave
 	const derivedPubKey: PublicKey = await PublicKey.createWithSeed(
-		basePubkey,
+		walletAdapter.publicKey!,
 		seed,
 		programId
 	);
@@ -49,8 +47,8 @@ export async function createFromSeed(
 	// spae: Amount of space in bytes to allocate to the created account, the space is immutable, and cost money
 	const instruction: TransactionInstruction =
 		SystemProgram.createAccountWithSeed({
-			fromPubkey: basePubkey,
-			basePubkey: basePubkey,
+			fromPubkey: walletAdapter.publicKey!,
+			basePubkey: walletAdapter.publicKey!,
 			seed: seed,
 			newAccountPubkey: derivedPubKey,
 			lamports: lamports,
@@ -61,13 +59,13 @@ export async function createFromSeed(
 	const transaction = new Transaction();
 
 	transaction.add(instruction);
-	transaction.feePayer = basePubkey;
+	transaction.feePayer = walletAdapter.publicKey!;
 	// Fetch a recent blockhash from the cluster, deprecated
 	// use getLatestBlockhash
 	let hash = await conn.getRecentBlockhash();
 	transaction.recentBlockhash = hash.blockhash;
 
-	// console.log(transaction);
+	console.log(transaction);
 
 	return new Promise((resolve) => {
 		resolve();

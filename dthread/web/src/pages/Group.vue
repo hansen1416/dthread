@@ -45,13 +45,11 @@ export default defineComponent({
 	data(): {
 		solanaConn: Connection;
 		wallet: PhantomWallet;
-		pubKey: PublicKey;
 		walletBalance: number;
 	} {
 		return {
 			solanaConn: undefined as Connection,
 			wallet: undefined as PhantomWallet,
-			pubKey: undefined as PublicKey,
 			walletBalance: 0,
 		};
 	},
@@ -75,7 +73,7 @@ export default defineComponent({
 			this.wallet
 				.connect()
 				.then((publicKey: PublicKey) => {
-					this.pubKey = publicKey;
+					popInfo("wallet connected");
 				})
 				.catch((e: any) => {
 					if (e.message) {
@@ -90,7 +88,6 @@ export default defineComponent({
 				this.wallet.disconnect().then((res: boolean) => {
 					if (res) {
 						this.wallet = undefined;
-						this.pubKey = undefined;
 
 						popInfo("wallet disconnected");
 					}
@@ -100,9 +97,9 @@ export default defineComponent({
 			}
 		},
 		getWalletBalance(e: Event) {
-			if (this.pubKey) {
+			if (this.wallet && this.wallet.publicKey) {
 				this.getSolanaConn
-					.getBalance(this.pubKey)
+					.getBalance(this.wallet.publicKey)
 					.then((balance: number) => {
 						this.walletBalance = balance;
 					})
@@ -114,9 +111,9 @@ export default defineComponent({
 			}
 		},
 		getAccountInfo(e: Event) {
-			if (this.pubKey) {
+			if (this.wallet && this.wallet.publicKey) {
 				this.getSolanaConn
-					.getAccountInfo(this.pubKey)
+					.getAccountInfo(this.wallet.publicKey)
 					.then((accountInfo: AccountInfo) => {
 						// accountInfo.owner.toString(),
 						// owner is system account '11111111111111111111111111111111'
@@ -135,9 +132,8 @@ export default defineComponent({
 
 			createFromSeed(
 				this.getSolanaConn,
-				this.wallet.provider,
+				this.wallet,
 				new PublicKey(GROUPS_PROGRAM_ID),
-				this.pubKey,
 				GROUP_SEED,
 				space
 			).then(() => {
@@ -164,9 +160,9 @@ export default defineComponent({
 	<div>
 		<button @click="createDerivedAccount">create account with seed</button>
 	</div>
-	<div v-if="pubKey">
+	<div v-if="wallet && wallet.publicKey">
 		<p>
-			public key is: <span>{{ pubKey.toString() }}</span>
+			public key is: <span>{{ wallet.publicKey.toString() }}</span>
 		</p>
 	</div>
 	<div v-if="walletBalance">
