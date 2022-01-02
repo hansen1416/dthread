@@ -101,7 +101,7 @@ export default defineComponent({
 				this.getSolanaConn
 					.getBalance(this.wallet.publicKey)
 					.then((balance: number) => {
-						this.walletBalance = balance;
+						this.walletBalance = balance / LAMPORTS_PER_SOL;
 					})
 					.catch((e: any) => {
 						popInfo("get account balance failed", e);
@@ -136,8 +136,8 @@ export default defineComponent({
 				new PublicKey(GROUPS_PROGRAM_ID),
 				GROUP_SEED,
 				space
-			).then(() => {
-				console.log("");
+			).then((accountInfo: AccountInfo<Buffer>) => {
+				console.log(accountInfo);
 			});
 		},
 	},
@@ -145,31 +145,46 @@ export default defineComponent({
 </script>
 
 <template>
-	<div>
-		<button @click="connectWallet">connect wallet</button>
-	</div>
-	<div>
-		<button @click="getWalletBalance">get wallet balance</button>
-	</div>
-	<div>
-		<button @click="getAccountInfo">get account info</button>
-	</div>
-	<div>
-		<button @click="disconnectWallet">disconnect wallet</button>
-	</div>
-	<div>
-		<button @click="createDerivedAccount">create account with seed</button>
-	</div>
-	<div v-if="wallet && wallet.publicKey">
-		<p>
-			public key is: <span>{{ wallet.publicKey.toString() }}</span>
-		</p>
-	</div>
-	<div v-if="walletBalance">
-		<p>
-			balance is: <span>{{ walletBalance }}</span>
-		</p>
+	<div class="grid">
+		<div>
+			<button @click="connectWallet">connect wallet</button>
+			<div v-if="wallet && wallet.publicKey">
+				<p>
+					public key is:
+					<span>{{ wallet.publicKey.toString() }}</span>
+				</p>
+			</div>
+		</div>
+		<div>
+			<button @click="getWalletBalance">get wallet balance</button>
+			<div v-if="walletBalance">
+				<p>
+					wallet balance is:
+					<span>{{ walletBalance }} SOL</span>
+				</p>
+			</div>
+		</div>
+		<div>
+			<button @click="getAccountInfo">get wallet account info</button>
+		</div>
+		<div>
+			<button @click="disconnectWallet">disconnect wallet</button>
+		</div>
+		<div>
+			<button @click="createDerivedAccount">
+				create account with seed
+			</button>
+		</div>
 	</div>
 </template>
 
-<style scoped></style>
+<style scoped>
+.grid {
+	display: grid;
+	grid-template-columns: repeat(3, 1fr);
+}
+
+.grid div {
+	height: 200px;
+}
+</style>

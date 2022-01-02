@@ -1,4 +1,5 @@
 import {
+	AccountInfo,
 	Connection,
 	PublicKey,
 	SystemProgram,
@@ -16,7 +17,7 @@ export async function createFromSeed(
 	programId: PublicKey,
 	seed: string,
 	space: number
-): Promise<void> {
+): Promise<AccountInfo<Buffer>> {
 	const lamports = await conn.getMinimumBalanceForRentExemption(space);
 
 	/**
@@ -34,6 +35,17 @@ export async function createFromSeed(
 		seed,
 		programId
 	);
+
+	let derivedAccountInfo: AccountInfo<Buffer> | null =
+		await conn.getAccountInfo(derivedPubKey);
+	// if the derived account is created already
+	// we read its account info and return
+	// the owner of this account is the programId
+	if (derivedAccountInfo) {
+		return new Promise((resolve) => {
+			resolve(derivedAccountInfo as AccountInfo<Buffer>);
+		});
+	}
 
 	// !!! when we have a pubkey associate user's pubkey, program, and groupname,
 	// we create a account by this pubkey,
@@ -78,15 +90,19 @@ export async function createFromSeed(
 			transaction
 		);
 		console.log("signed transaction", signature);
-
-		let result = await conn.confirmTransaction(signature, "singleGossip");
+		// Commitment: "processed" | "confirmed" | "finalized" | "recent" | "single" | "singleGossip" | "root" | "max"
+		let result: RpcResponseAndContext<SignatureResult> =
+			await conn.confirmTransaction(signature, "singleGossip");
 		console.log("new chat account created", result);
+		// account created, return account info
+		let derivedAccountInfo: AccountInfo<Buffer> | null =
+			await conn.getAccountInfo(derivedPubKey);
+
+		return new Promise((resolve) => {
+			resolve(derivedAccountInfo as AccountInfo<Buffer>);
+		});
 	} catch (err) {
 		console.log("signAndSendTransaction error", err);
 		throw err;
 	}
-
-	return new Promise((resolve) => {
-		resolve();
-	});
 }
