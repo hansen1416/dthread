@@ -45,12 +45,14 @@ export default defineComponent({
 	data(): {
 		solanaConn: Connection;
 		wallet: PhantomWallet;
-		walletBalance: number;
+		walletAccountInfo: AccountInfo;
+		derivedAccountInfo: AccountInfo;
 	} {
 		return {
 			solanaConn: undefined as Connection,
 			wallet: undefined as PhantomWallet,
-			walletBalance: 0,
+			walletAccountInfo: undefined as AccountInfo,
+			derivedAccountInfo: undefined as AccountInfo,
 		};
 	},
 	computed: {
@@ -61,6 +63,9 @@ export default defineComponent({
 				}
 				return this.solanaConn;
 			},
+		},
+		lamportsSol() {
+			return LAMPORTS_PER_SOL;
 		},
 	},
 	mounted() {
@@ -96,28 +101,28 @@ export default defineComponent({
 				popInfo("wallet not connected");
 			}
 		},
-		getWalletBalance(e: Event) {
-			if (this.wallet && this.wallet.publicKey) {
-				this.getSolanaConn
-					.getBalance(this.wallet.publicKey)
-					.then((balance: number) => {
-						this.walletBalance = balance / LAMPORTS_PER_SOL;
-					})
-					.catch((e: any) => {
-						popInfo("get account balance failed", e);
-					});
-			} else {
-				popInfo("public key is not defined");
-			}
-		},
-		getAccountInfo(e: Event) {
+		// getWalletBalance(e: Event) {
+		// 	if (this.wallet && this.wallet.publicKey) {
+		// 		this.getSolanaConn
+		// 			.getBalance(this.wallet.publicKey)
+		// 			.then((balance: number) => {
+		// 				this.walletBalance = balance / LAMPORTS_PER_SOL;
+		// 			})
+		// 			.catch((e: any) => {
+		// 				popInfo("get account balance failed", e);
+		// 			});
+		// 	} else {
+		// 		popInfo("public key is not defined");
+		// 	}
+		// },
+		getWalletAccountInfo(e: Event) {
 			if (this.wallet && this.wallet.publicKey) {
 				this.getSolanaConn
 					.getAccountInfo(this.wallet.publicKey)
 					.then((accountInfo: AccountInfo) => {
 						// accountInfo.owner.toString(),
 						// owner is system account '11111111111111111111111111111111'
-						console.info(accountInfo);
+						this.walletAccountInfo = accountInfo;
 					})
 					.catch((e: any) => {
 						popInfo("get account info failed", e);
@@ -137,7 +142,21 @@ export default defineComponent({
 				GROUP_SEED,
 				space
 			).then((accountInfo: AccountInfo<Buffer>) => {
-				console.log(accountInfo);
+				this.derivedAccountInfo = accountInfo;
+
+				console.log(this.derivedAccountInfo.data);
+				console.log(
+					new TextDecoder("utf-8").decode(
+						this.derivedAccountInfo.data
+					)
+				);
+
+				console.log(
+					String.fromCharCode.apply(
+						null,
+						this.derivedAccountInfo.data
+					)
+				);
 			});
 		},
 	},
@@ -156,16 +175,27 @@ export default defineComponent({
 			</div>
 		</div>
 		<div>
-			<button @click="getWalletBalance">get wallet balance</button>
-			<div v-if="walletBalance">
+			<button @click="getWalletAccountInfo">
+				get wallet account info
+			</button>
+			<div v-if="walletAccountInfo">
+				<p>
+					account owner is system program id
+					<strong>{{ walletAccountInfo.owner.toString() }}</strong>
+				</p>
 				<p>
 					wallet balance is:
-					<span>{{ walletBalance }} SOL</span>
+					<strong
+						>{{ walletAccountInfo.lamports / lamportsSol }}
+					</strong>
+					SOL
+				</p>
+				<p>
+					account data length is
+					<strong>{{ walletAccountInfo.data.byteLength }}</strong>
+					bytes
 				</p>
 			</div>
-		</div>
-		<div>
-			<button @click="getAccountInfo">get wallet account info</button>
 		</div>
 		<div>
 			<button @click="disconnectWallet">disconnect wallet</button>
@@ -174,6 +204,24 @@ export default defineComponent({
 			<button @click="createDerivedAccount">
 				create account with seed
 			</button>
+			<div v-if="derivedAccountInfo">
+				<p>
+					account owner is system program id
+					<strong>{{ derivedAccountInfo.owner.toString() }}</strong>
+				</p>
+				<p>
+					wallet balance is:
+					<strong
+						>{{ derivedAccountInfo.lamports / lamportsSol }}
+					</strong>
+					SOL
+				</p>
+				<p>
+					account data length is
+					<strong>{{ derivedAccountInfo.data.byteLength }}</strong>
+					bytes
+				</p>
+			</div>
 		</div>
 	</div>
 </template>
