@@ -206,7 +206,7 @@ export default defineComponent({
 			</button>
 			<div v-if="derivedAccountInfo">
 				<p>
-					account owner is system program id
+					account owner is program id
 					<strong>{{ derivedAccountInfo.owner.toString() }}</strong>
 				</p>
 				<p>
