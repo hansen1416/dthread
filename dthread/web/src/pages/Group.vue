@@ -13,6 +13,7 @@ import PhantomWallet from "../wallets/phantom";
 import { popInfo } from "../helpers/notifications";
 import { GROUPS_PROGRAM_ID } from "../constants/index";
 import { createFromSeed } from "../solana/account";
+import { saveData } from "../solana/data";
 import { RPC_URL } from "../constants/index";
 
 export default defineComponent({
@@ -46,12 +47,14 @@ export default defineComponent({
 		solanaConn: Connection;
 		wallet: PhantomWallet;
 		walletAccountInfo: AccountInfo;
+		derivedPubkey: PublicKey;
 		derivedAccountInfo: AccountInfo;
 	} {
 		return {
 			solanaConn: undefined as Connection,
 			wallet: undefined as PhantomWallet,
 			walletAccountInfo: undefined as AccountInfo,
+			derivedPubkey: undefined as PublicKey,
 			derivedAccountInfo: undefined as AccountInfo,
 		};
 	},
@@ -66,6 +69,9 @@ export default defineComponent({
 		},
 		lamportsSol() {
 			return LAMPORTS_PER_SOL;
+		},
+		groupsProgramId() {
+			return new PublicKey(GROUPS_PROGRAM_ID);
 		},
 	},
 	mounted() {
@@ -138,26 +144,28 @@ export default defineComponent({
 			createFromSeed(
 				this.getSolanaConn,
 				this.wallet,
-				new PublicKey(GROUPS_PROGRAM_ID),
+				this.groupsProgramId,
 				GROUP_SEED,
 				space
-			).then((accountInfo: AccountInfo<Buffer>) => {
-				this.derivedAccountInfo = accountInfo;
+			).then((pubkey: PublicKey) => {
+				this.derivedPubkey = pubkey;
 
-				console.log(this.derivedAccountInfo.data);
-				console.log(
-					new TextDecoder("utf-8").decode(
-						this.derivedAccountInfo.data
-					)
-				);
-
-				console.log(
-					String.fromCharCode.apply(
-						null,
-						this.derivedAccountInfo.data
-					)
-				);
+				this.getSolanaConn
+					.getAccountInfo(this.derivedPubkey)
+					.then((accountInfo: AccountInfo<Buffer>) => {
+						this.derivedAccountInfo = accountInfo;
+					});
 			});
+		},
+		sendGroupData(e: Event) {
+			const data = "Alaksdfklahdfkhasd12iuweureqw42d";
+			saveData(
+				this.getSolanaConn,
+				this.wallet,
+				data,
+				this.derivedPubkey,
+				this.groupsProgramId
+			);
 		},
 	},
 });
@@ -222,6 +230,9 @@ export default defineComponent({
 					bytes
 				</p>
 			</div>
+		</div>
+		<div>
+			<button @click="sendGroupData">send group initial data</button>
 		</div>
 	</div>
 </template>

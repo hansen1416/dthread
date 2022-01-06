@@ -17,7 +17,7 @@ export async function createFromSeed(
 	programId: PublicKey,
 	seed: string,
 	space: number
-): Promise<AccountInfo<Buffer>> {
+): Promise<PublicKey> {
 	const lamports = await conn.getMinimumBalanceForRentExemption(space);
 
 	/**
@@ -43,7 +43,7 @@ export async function createFromSeed(
 	// the owner of this account is the programId
 	if (derivedAccountInfo) {
 		return new Promise((resolve) => {
-			resolve(derivedAccountInfo as AccountInfo<Buffer>);
+			resolve(derivedPubKey);
 		});
 	}
 
@@ -94,15 +94,12 @@ export async function createFromSeed(
 		let result: RpcResponseAndContext<SignatureResult> =
 			await conn.confirmTransaction(signature, "singleGossip");
 		console.log("new chat account created", result);
-		// account created, return account info
-		let derivedAccountInfo: AccountInfo<Buffer> | null =
-			await conn.getAccountInfo(derivedPubKey);
-
-		return new Promise((resolve) => {
-			resolve(derivedAccountInfo as AccountInfo<Buffer>);
-		});
 	} catch (err) {
 		console.log("signAndSendTransaction error", err);
 		throw err;
 	}
+
+	return new Promise((resolve) => {
+		resolve(derivedPubKey);
+	});
 }

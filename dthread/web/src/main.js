@@ -6,6 +6,8 @@ if (!import.meta.env.SSR) {
 	// polyfill for `ReferenceError: global is not defined`
 	// when start web3js connection
 	window.global = window;
+
+	// global.Buffer = global.Buffer || require("buffer").Buffer;
 }
 
 // SSR requires a fresh app instance per request, therefore we export a function
