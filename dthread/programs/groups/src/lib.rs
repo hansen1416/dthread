@@ -11,9 +11,9 @@ use solana_program::{
 
 /// Define the type of state stored in accounts
 #[derive(BorshSerialize, BorshDeserialize, Debug)]
-pub struct GreetingAccount {
+pub struct DataAccount {
     /// number of greetings
-    pub txt: String,
+    pub id: String,
 }
 
 // Declare and export the program's entrypoint
@@ -27,35 +27,35 @@ pub fn process_instruction(
 ) -> ProgramResult {
     msg!("Hello World Rust program entrypoint");
 
-    // // Iterating accounts is safer then indexing
-    // let accounts_iter = &mut accounts.iter();
+    // Iterating accounts is safer then indexing
+    let accounts_iter = &mut accounts.iter();
 
-    // // Get the account to say hello to
-    // let account = next_account_info(accounts_iter)?;
+    // Get the account to say hello to
+    let account = next_account_info(accounts_iter)?;
 
-    // // The account must be owned by the program in order to modify its data
-    // if account.owner != program_id {
-    //     msg!("Greeted account does not have the correct program id");
-    //     return Err(ProgramError::IncorrectProgramId);
-    // }
+    // The account must be owned by the program in order to modify its data
+    if account.owner != program_id {
+        msg!("Greeted account does not have the correct program id");
+        return Err(ProgramError::IncorrectProgramId);
+    }
 
-    // // Increment and store the number of times the account has been greeted
-    // let message = GreetingAccount::try_from_slice(instruction_data).map_err(|err| {
-    //     msg!("Receiving message as string utf8 failed, {:?}", err);
-    //     ProgramError::InvalidInstructionData
-    // })?;
+    // Increment and store the number of times the account has been greeted
+    let message = DataAccount::try_from_slice(instruction_data).map_err(|err| {
+        msg!("Receiving message as string utf8 failed, {:?}", err);
+        ProgramError::InvalidInstructionData
+    })?;
 
-    // msg!("Greeting passed to program is {:?}", message);
+    msg!("Greeting passed to program is {:?}", message);
 
-    // let data = &mut &mut account.data.borrow_mut();
-    // msg!("Start save instrution data");
+    let data = &mut &mut account.data.borrow_mut();
+    msg!("account data {:?}", data);
 
-    // msg!("instruction length {}", instruction_data.len());
+    msg!("instruction length {}", instruction_data.len());
 
-    // data[..instruction_data.len()].copy_from_slice(&instruction_data);
+    data[..instruction_data.len()].copy_from_slice(&instruction_data);
 
-    // sol_log_compute_units();
-    // msg!("Was sent message {}!", message.txt);
+    sol_log_compute_units();
+    msg!("Was sent message {}", message.id);
 
     Ok(())
 }

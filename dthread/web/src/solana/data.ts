@@ -20,7 +20,7 @@ export async function saveData(
 	// console.log("save data to", dataAccountPubkey.toBase58());
 
 	let messageAccount = new DataAccount();
-	messageAccount.data = data;
+	messageAccount.id = data;
 
 	const instruction = new TransactionInstruction({
 		keys: [

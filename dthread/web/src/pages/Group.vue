@@ -11,12 +11,13 @@ import {
 	SignatureResult,
 	TransactionError,
 } from "@solana/web3.js";
+import * as borsh from "borsh";
 import PhantomWallet from "../wallets/phantom";
-import { popInfo } from "../helpers/notifications";
+import { pop_info, random_string } from "../helpers/index";
 import { GROUPS_PROGRAM_ID } from "../constants/index";
 import { createFromSeed } from "../solana/account";
 import { saveData } from "../solana/data";
-import { RPC_URL } from "../constants/index";
+import { RPC_URL, DataAccount, DataSchema } from "../constants/index";
 
 export default defineComponent({
 	serverPrefetch() {},
@@ -51,6 +52,8 @@ export default defineComponent({
 		walletAccountInfo: AccountInfo;
 		derivedPubkey: PublicKey;
 		derivedAccountInfo: AccountInfo;
+		derivedAccountData: String;
+		pseudoId: String;
 	} {
 		return {
 			solanaConn: undefined as Connection,
@@ -58,6 +61,8 @@ export default defineComponent({
 			walletAccountInfo: undefined as AccountInfo,
 			derivedPubkey: undefined as PublicKey,
 			derivedAccountInfo: undefined as AccountInfo,
+			derivedAccountData: "",
+			pseudoId: "",
 		};
 	},
 	computed: {
@@ -86,13 +91,13 @@ export default defineComponent({
 			this.wallet
 				.connect()
 				.then((publicKey: PublicKey) => {
-					popInfo("wallet connected");
+					pop_info("wallet connected");
 				})
 				.catch((e: any) => {
 					if (e.message) {
-						popInfo(e.message);
+						pop_info(e.message);
 					} else {
-						popInfo("unable to connect wallet");
+						pop_info("unable to connect wallet");
 					}
 				});
 		},
@@ -102,46 +107,19 @@ export default defineComponent({
 					if (res) {
 						this.wallet = undefined;
 
-						popInfo("wallet disconnected");
+						pop_info("wallet disconnected");
 					}
 				});
 			} else {
-				popInfo("wallet not connected");
+				pop_info("wallet not connected");
 			}
 		},
-		// getWalletBalance(e: Event) {
-		// 	if (this.wallet && this.wallet.publicKey) {
-		// 		this.getSolanaConn
-		// 			.getBalance(this.wallet.publicKey)
-		// 			.then((balance: number) => {
-		// 				this.walletBalance = balance / LAMPORTS_PER_SOL;
-		// 			})
-		// 			.catch((e: any) => {
-		// 				popInfo("get account balance failed", e);
-		// 			});
-		// 	} else {
-		// 		popInfo("public key is not defined");
-		// 	}
-		// },
 		getWalletAccountInfo(e: Event) {
-			if (this.wallet && this.wallet.publicKey) {
-				this.getSolanaConn
-					.getAccountInfo(this.wallet.publicKey)
-					.then((accountInfo: AccountInfo) => {
-						// accountInfo.owner.toString(),
-						// owner is system account '11111111111111111111111111111111'
-						this.walletAccountInfo = accountInfo;
-					})
-					.catch((e: any) => {
-						popInfo("get account info failed", e);
-					});
-			} else {
-				popInfo("public key is not defined");
-			}
+			this._updateWalletInfo();
 		},
 		createDerivedAccount(e: Event) {
 			const GROUP_SEED = "abcgroup";
-			const space = 32;
+			const space = 43 + 4; // plus 4 due to some data diffs between client and program
 
 			createFromSeed(
 				this.getSolanaConn,
@@ -151,31 +129,58 @@ export default defineComponent({
 				space
 			).then((pubkey: PublicKey) => {
 				this.derivedPubkey = pubkey;
-
-				this.getSolanaConn
-					.getAccountInfo(this.derivedPubkey)
-					.then((accountInfo: AccountInfo<Buffer>) => {
-						this.derivedAccountInfo = accountInfo;
-					});
+				this._updateWalletInfo();
+				this._updateDataAccountInfo();
 			});
 		},
 		sendGroupData(e: Event) {
-			const data = "Alaksdfklahdfkhasd12iuweureqw42d";
-
-			// console.log(global);
+			this.pseudoId = random_string(43); // 43
 
 			saveData(
 				this.getSolanaConn,
 				this.wallet,
 				this.derivedPubkey,
 				this.groupsProgramId,
-				data
+				this.pseudoId
 			)
 				.then((res: SignatureResult) => {
 					console.log(res);
+
+					this._updateWalletInfo();
+					this._updateDataAccountInfo();
 				})
 				.catch((e: TransactionError) => {
 					console.error(e);
+				});
+		},
+		_updateWalletInfo() {
+			if (this.wallet && this.wallet.publicKey) {
+				this.getSolanaConn
+					.getAccountInfo(this.wallet.publicKey)
+					.then((accountInfo: AccountInfo) => {
+						// accountInfo.owner.toString(),
+						// owner is system account '11111111111111111111111111111111'
+						this.walletAccountInfo = accountInfo;
+					})
+					.catch((e: any) => {
+						pop_info("get account info failed", e);
+					});
+			} else {
+				pop_info("public key is not defined");
+			}
+		},
+		_updateDataAccountInfo() {
+			this.getSolanaConn
+				.getAccountInfo(this.derivedPubkey)
+				.then((accountInfo: AccountInfo<Buffer>) => {
+					this.derivedAccountInfo = accountInfo;
+
+					const aid: DataAccount = borsh.deserialize(
+						DataSchema,
+						DataAccount,
+						this.derivedAccountInfo.data
+					);
+					this.derivedAccountData = aid.id;
 				});
 		},
 	},
@@ -240,10 +245,21 @@ export default defineComponent({
 					<strong>{{ derivedAccountInfo.data.byteLength }}</strong>
 					bytes
 				</p>
+				<p>
+					account data:
+					<strong>{{ derivedAccountData }}</strong>
+					bytes
+				</p>
 			</div>
 		</div>
 		<div>
 			<button @click="sendGroupData">send group initial data</button>
+			<div v-if="pseudoId">
+				<p>
+					save pseudo id:
+					<strong>{{ pseudoId }}</strong>
+				</p>
+			</div>
 		</div>
 	</div>
 </template>
