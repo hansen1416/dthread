@@ -8,6 +8,8 @@ import {
 	PublicKey,
 	LAMPORTS_PER_SOL,
 	MAX_SEED_LENGTH,
+	SignatureResult,
+	TransactionError,
 } from "@solana/web3.js";
 import PhantomWallet from "../wallets/phantom";
 import { popInfo } from "../helpers/notifications";
@@ -159,13 +161,22 @@ export default defineComponent({
 		},
 		sendGroupData(e: Event) {
 			const data = "Alaksdfklahdfkhasd12iuweureqw42d";
+
+			// console.log(global);
+
 			saveData(
 				this.getSolanaConn,
 				this.wallet,
-				data,
 				this.derivedPubkey,
-				this.groupsProgramId
-			);
+				this.groupsProgramId,
+				data
+			)
+				.then((res: SignatureResult) => {
+					console.log(res);
+				})
+				.catch((e: TransactionError) => {
+					console.error(e);
+				});
 		},
 	},
 });
