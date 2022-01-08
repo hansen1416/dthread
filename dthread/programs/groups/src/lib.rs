@@ -89,23 +89,23 @@ mod test {
         let accounts = vec![account];
 
         assert_eq!(
-            GreetingAccount::try_from_slice(&accounts[0].data.borrow())
+            DataAccount::try_from_slice(&accounts[0].data.borrow())
                 .unwrap()
-                .txt,
+                .id,
             0
         );
         process_instruction(&program_id, &accounts, &instruction_data).unwrap();
         assert_eq!(
-            GreetingAccount::try_from_slice(&accounts[0].data.borrow())
+            DataAccount::try_from_slice(&accounts[0].data.borrow())
                 .unwrap()
-                .txt,
+                .id,
             1
         );
         process_instruction(&program_id, &accounts, &instruction_data).unwrap();
         assert_eq!(
-            GreetingAccount::try_from_slice(&accounts[0].data.borrow())
+            DataAccount::try_from_slice(&accounts[0].data.borrow())
                 .unwrap()
-                .txt,
+                .id,
             2
         );
     }

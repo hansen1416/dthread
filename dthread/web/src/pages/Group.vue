@@ -91,7 +91,7 @@ export default defineComponent({
 			this.wallet
 				.connect()
 				.then((publicKey: PublicKey) => {
-					pop_info("wallet connected");
+					// pop_info("wallet connected");
 				})
 				.catch((e: any) => {
 					if (e.message) {
@@ -158,9 +158,13 @@ export default defineComponent({
 				this.getSolanaConn
 					.getAccountInfo(this.wallet.publicKey)
 					.then((accountInfo: AccountInfo) => {
-						// accountInfo.owner.toString(),
-						// owner is system account '11111111111111111111111111111111'
-						this.walletAccountInfo = accountInfo;
+						if (accountInfo === null) {
+							pop_info("No publickey information on cluster");
+						} else {
+							// accountInfo.owner.toString(),
+							// owner is system account '11111111111111111111111111111111'
+							this.walletAccountInfo = accountInfo;
+						}
 					})
 					.catch((e: any) => {
 						pop_info("get account info failed", e);
@@ -175,12 +179,18 @@ export default defineComponent({
 				.then((accountInfo: AccountInfo<Buffer>) => {
 					this.derivedAccountInfo = accountInfo;
 
-					const aid: DataAccount = borsh.deserialize(
-						DataSchema,
-						DataAccount,
-						this.derivedAccountInfo.data
-					);
-					this.derivedAccountData = aid.id;
+					try {
+						const aid: DataAccount = borsh.deserialize(
+							DataSchema,
+							DataAccount,
+							this.derivedAccountInfo.data
+						);
+
+						this.derivedAccountData = aid.id;
+					} catch (e) {
+						this.derivedAccountData =
+							this.derivedAccountInfo.data.toString("hex");
+					}
 				});
 		},
 	},
@@ -222,9 +232,6 @@ export default defineComponent({
 			</div>
 		</div>
 		<div>
-			<button @click="disconnectWallet">disconnect wallet</button>
-		</div>
-		<div>
 			<button @click="createDerivedAccount">
 				create account with seed
 			</button>
@@ -248,7 +255,6 @@ export default defineComponent({
 				<p>
 					account data:
 					<strong>{{ derivedAccountData }}</strong>
-					bytes
 				</p>
 			</div>
 		</div>
@@ -261,13 +267,16 @@ export default defineComponent({
 				</p>
 			</div>
 		</div>
+		<div>
+			<button @click="disconnectWallet">disconnect wallet</button>
+		</div>
 	</div>
 </template>
 
 <style scoped>
 .grid {
 	display: grid;
-	grid-template-columns: repeat(3, 1fr);
+	grid-template-columns: repeat(2, 1fr);
 }
 
 .grid div {

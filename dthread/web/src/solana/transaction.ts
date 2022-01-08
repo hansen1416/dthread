@@ -3,8 +3,10 @@ import {
 	RpcResponseAndContext,
 	SignatureResult,
 	Transaction,
+	SendTransactionError,
 } from "@solana/web3.js";
 import { WalletAdapter } from "../interfaces/index";
+import { pop_error } from "../helpers/index";
 
 export async function signAndConfirmTransaction(
 	conn: Connection,
@@ -40,7 +42,7 @@ export async function signAndConfirmTransaction(
 			resolve(result.value);
 		});
 	} catch (err) {
-		// console.error("signAndSendTransaction error", err);
+		pop_error((err as SendTransactionError).message);
 		throw err;
 	}
 }

@@ -2,6 +2,10 @@ export function pop_info(msg: string) {
 	alert(msg);
 }
 
+export function pop_error(msg: string) {
+	alert("Error:" + msg);
+}
+
 export function random_string(
 	lengthOfCode: number,
 	possible: string = "ABCDEFGHIJKLMNOPQRSTUVWXYZ1234567890abcdefghijklmnopqrstuvwxyz"
