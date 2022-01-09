@@ -16,3 +16,15 @@ export function random_string(
 	}
 	return text;
 }
+
+export function sleep(ms: number) {
+	const now = Date.now();
+	const limit = now + ms;
+	let execute = true;
+	while (execute) {
+		if (limit < Date.now()) {
+			execute = false;
+		}
+	}
+	return;
+}

@@ -39,9 +39,9 @@ services:
       - postgres
       - arweave-node
     expose: 
-      - 3000
+      - 1900
     ports:
-      - "3000:3000"
+      - "1900:3000"
     networks:
       - sub-etha
   # The TestWeave net

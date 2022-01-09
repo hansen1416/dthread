@@ -13,10 +13,11 @@ import {
 } from "@solana/web3.js";
 import * as borsh from "borsh";
 import PhantomWallet from "../wallets/phantom";
-import { pop_info, random_string } from "../helpers/index";
+import { pop_info, sleep } from "../helpers/index";
 import { GROUPS_PROGRAM_ID } from "../constants/index";
 import { createFromSeed } from "../solana/account";
 import { saveData } from "../solana/data";
+import arweaveService from "../arweave/index";
 import { RPC_URL, DataAccount, DataSchema } from "../constants/index";
 
 export default defineComponent({
@@ -52,8 +53,11 @@ export default defineComponent({
 		walletAccountInfo: AccountInfo;
 		derivedPubkey: PublicKey;
 		derivedAccountInfo: AccountInfo;
-		derivedAccountData: String;
-		pseudoId: String;
+		derivedAccountData: string;
+		groupData: string;
+		ArweaveId: string;
+		readDataProcess: string;
+		groupName: string;
 	} {
 		return {
 			solanaConn: undefined as Connection,
@@ -62,7 +66,11 @@ export default defineComponent({
 			derivedPubkey: undefined as PublicKey,
 			derivedAccountInfo: undefined as AccountInfo,
 			derivedAccountData: "",
-			pseudoId: "",
+			groupData:
+				'{"group_name":"ABC group","created_at":"2022-01-11 00:00:00","active":true,"sub_forums":[{"name":"Sub forum one"},{"name":"Sub forum two"},{"name":"Sub forum three"}]}',
+			ArweaveId: "",
+			readDataProcess: "",
+			groupName: "abcgroup",
 		};
 	},
 	computed: {
@@ -83,6 +91,7 @@ export default defineComponent({
 	},
 	mounted() {
 		// console.log(LAMPORTS_PER_SOL, MAX_SEED_LENGTH);
+		// console.log(arweaveService);
 	},
 	methods: {
 		connectWallet(e: Event) {
@@ -117,31 +126,45 @@ export default defineComponent({
 		getWalletAccountInfo(e: Event) {
 			this._updateWalletInfo();
 		},
+		saveToArweave(e: Event) {
+			const ars = arweaveService;
+
+			const buf = Buffer.from(this.groupData, "utf8");
+
+			(async () => {
+				this.ArweaveId = await ars.saveData(buf);
+			})();
+		},
 		createDerivedAccount(e: Event) {
-			const GROUP_SEED = "abcgroup";
 			const space = 43 + 4; // plus 4 due to some data diffs between client and program
 
-			createFromSeed(
-				this.getSolanaConn,
-				this.wallet,
-				this.groupsProgramId,
-				GROUP_SEED,
-				space
-			).then((pubkey: PublicKey) => {
-				this.derivedPubkey = pubkey;
-				this._updateWalletInfo();
-				this._updateDataAccountInfo();
-			});
+			(async () => {
+				if (this.wallet == undefined) {
+					this.wallet = new PhantomWallet();
+
+					await this.wallet.connect();
+				}
+
+				createFromSeed(
+					this.getSolanaConn,
+					this.wallet,
+					this.groupsProgramId,
+					this.groupName,
+					space
+				).then((pubkey: PublicKey) => {
+					this.derivedPubkey = pubkey;
+					this._updateWalletInfo();
+					this._updateDataAccountInfo();
+				});
+			})();
 		},
 		sendGroupData(e: Event) {
-			this.pseudoId = random_string(43); // 43
-
 			saveData(
 				this.getSolanaConn,
 				this.wallet,
 				this.derivedPubkey,
 				this.groupsProgramId,
-				this.pseudoId
+				this.ArweaveId
 			)
 				.then((res: SignatureResult) => {
 					console.log(res);
@@ -153,6 +176,45 @@ export default defineComponent({
 					console.error(e);
 				});
 		},
+		readFromArweave() {
+			const ars = arweaveService;
+
+			this.readDataProcess =
+				"<p>star reading from <strong>" +
+				this.derivedPubkey +
+				" </strong></p>";
+			(async () => {
+				const accinfo = await this.getSolanaConn.getAccountInfo(
+					this.derivedPubkey
+				);
+
+				const dacc: DataAccount = borsh.deserialize(
+					DataSchema,
+					DataAccount,
+					accinfo.data
+				);
+
+				const aid = dacc.id;
+
+				sleep(200);
+
+				this.readDataProcess +=
+					"<p>find Arweave id <strong>" + aid + " </strong></p>";
+
+				this.readDataProcess += "<p>start reading from Arweave </p>";
+				const adata = new DataAccount();
+				adata.id = aid;
+				const res = await ars.getData(adata);
+
+				sleep(200);
+
+				this.readDataProcess +=
+					"<p>get group data from Arweave <strong>" +
+					res +
+					" </strong></p>";
+			})();
+		},
+
 		_updateWalletInfo() {
 			if (this.wallet && this.wallet.publicKey) {
 				this.getSolanaConn
@@ -232,10 +294,23 @@ export default defineComponent({
 			</div>
 		</div>
 		<div>
+			<button @click="saveToArweave">save to arweave</button>
+			<div>
+				<p>
+					Group structure info: <strong>{{ groupData }}</strong>
+				</p>
+				<p v-if="ArweaveId">{{ ArweaveId }}</p>
+			</div>
+		</div>
+		<div>
 			<button @click="createDerivedAccount">
 				create account with seed
 			</button>
 			<div v-if="derivedAccountInfo">
+				<p>
+					public key is
+					<strong>{{ derivedPubkey.toString() }}</strong>
+				</p>
 				<p>
 					account owner is program id
 					<strong>{{ derivedAccountInfo.owner.toString() }}</strong>
@@ -260,12 +335,18 @@ export default defineComponent({
 		</div>
 		<div>
 			<button @click="sendGroupData">send group initial data</button>
-			<div v-if="pseudoId">
+			<div v-if="ArweaveId">
 				<p>
-					save pseudo id:
-					<strong>{{ pseudoId }}</strong>
+					save Arweave id:
+					<strong>{{ ArweaveId }}</strong>
 				</p>
 			</div>
+		</div>
+		<div>
+			<button @click="readFromArweave">
+				read group data from solana => arweave
+			</button>
+			<div v-if="readDataProcess" v-html="readDataProcess"></div>
 		</div>
 		<div>
 			<button @click="disconnectWallet">disconnect wallet</button>
