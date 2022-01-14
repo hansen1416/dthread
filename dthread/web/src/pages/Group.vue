@@ -12,13 +12,13 @@ import {
 	TransactionError,
 } from "@solana/web3.js";
 import * as borsh from "borsh";
+import { RPC_URL, DataAccount, DataSchema } from "../constants/index";
 import PhantomWallet from "../wallets/phantom";
 import { pop_info, sleep } from "../helpers/index";
 import { GROUPS_PROGRAM_ID } from "../constants/index";
 import { createFromSeed } from "../solana/account";
 import { saveData } from "../solana/data";
 import arweaveService from "../arweave/index";
-import { RPC_URL, DataAccount, DataSchema } from "../constants/index";
 
 export default defineComponent({
 	serverPrefetch() {},

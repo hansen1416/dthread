@@ -4,13 +4,13 @@
 	import marked from 'marked';
 
 	export let blogId;
-	console.log({ blogId });
+	//console.log({ blogId });
 	let bio;
 	onMount(() => {
 		$anchorClient?.getBio(blogId).then((b) => {
-			console.log({ b });
+			//console.log({ b });
 			bio = marked(b);
-			console.log({ bio });
+			//console.log({ bio });
 		});
 	});
 </script>

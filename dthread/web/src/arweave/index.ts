@@ -20,7 +20,7 @@ class ArweaveService {
 		});
 
 		TestWeave.init(this.arweave).then((testWeave) => {
-			console.log(testWeave);
+			// console.log(testWeave);
 
 			this.testWeave = testWeave;
 			this.walletKey = this.testWeave.rootJWK;

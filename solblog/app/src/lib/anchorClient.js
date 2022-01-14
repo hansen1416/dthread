@@ -102,7 +102,7 @@ export default class AnchorClient {
 	// never really used, but a good example of how to use Anchor to read an account
 	async getBio(blogId) {
 		const account = await this.program.account.blogAccount.fetch(new anchor.web3.PublicKey(blogId));
-		console.log(`get account bio:`, { account });
+		// console.log(`get account bio:`, { account });
 		return utf8decoder.decode(account.bio);
 	}
 
@@ -179,6 +179,9 @@ export default class AnchorClient {
 				!(instr.type === 'createAccount' && instr.info.owner == this.programId.toString())
 			)
 				return; // skip if it's not createAccount for this programId
+
+			// console.log(tx.meta.innerInstructions[0].instructions[0].parsed.info.newAccount);
+			// these are blogId
 			blogAccounts.push(tx.meta.innerInstructions[0].instructions[0].parsed.info.newAccount);
 
 			return;
