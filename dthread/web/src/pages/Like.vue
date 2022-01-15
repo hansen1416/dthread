@@ -10,11 +10,18 @@ import {
 	MAX_SEED_LENGTH,
 	SignatureResult,
 	TransactionError,
+	ParsedConfirmedTransaction,
+	ParsedMessageAccount,
 } from "@solana/web3.js";
 import * as borsh from "borsh";
 import { RPC_URL, DataAccount, DataSchema } from "../constants/index";
 import PhantomWallet from "../wallets/phantom";
-import { pop_info, sleep } from "../helpers/index";
+import {
+	pop_info,
+	pop_error,
+	sleep,
+	timestampToString,
+} from "../helpers/index";
 import { POST_PROGRAM_ID } from "../constants/index";
 import { createFromSeed } from "../solana/account";
 import { saveData } from "../solana/data";
@@ -28,6 +35,9 @@ export default defineComponent({
 		derivedPubkey: PublicKey;
 		derivedAccountInfo: AccountInfo;
 		ArweaveId: string;
+		transactinHistory: string[];
+		derivedPubkeyStr: string;
+		likeAccountList: string[];
 	} {
 		return {
 			solanaConn: undefined as Connection,
@@ -36,6 +46,9 @@ export default defineComponent({
 			derivedPubkey: undefined as PublicKey,
 			derivedAccountInfo: undefined as AccountInfo,
 			ArweaveId: "Ar7SU71Gq4opQUiesBrZ9KaqV84ZAFp7e8hwJwgtoRb",
+			transactinHistory: [],
+			derivedPubkeyStr: "5BDnrWZpYiPKWpMieu9U1HgbDJTNanTqs6cFf6ywgsZx",
+			likeAccountList: [],
 		};
 	},
 	computed: {
@@ -74,116 +87,43 @@ export default defineComponent({
 		getWalletAccountInfo(e: Event) {
 			this._updateWalletInfo();
 		},
+
 		getPostAccountHistory(e: Event) {
 			(async () => {
-				if (this.derivedPubkey === undefined) {
-					this.derivedPubkey = await createFromSeed(
-						this.getSolanaConn,
-						this.wallet,
-						this.postProgramId,
-						"post_account",
-						47
-					);
-				}
+				// assume we already heave an account store post data
+				const postAccountPubKey = new PublicKey(this.derivedPubkeyStr);
 
 				const limit = 1000;
 
 				const confirmedSignatureInfo =
 					await this.getSolanaConn.getSignaturesForAddress(
-						this.derivedPubkey,
+						postAccountPubKey,
 						{ limit }
 					);
 
 				const transactionSignatures = confirmedSignatureInfo.map(
 					(sigInfo) => sigInfo.signature
 				);
+
 				const parsedConfirmedTransactions =
 					await this.getSolanaConn.getParsedConfirmedTransactions(
 						transactionSignatures
 					);
 
-				parsedConfirmedTransactions.forEach((tx, indx) => {
-					console.log(indx);
-
-					for (
-						let i = 0;
-						i < tx.transaction.message.accountKeys.length;
-						i++
-					) {
-						console.log(
-							tx.transaction.message.accountKeys[
-								i
-							].pubkey.toString()
-						);
+				parsedConfirmedTransactions.forEach(
+					(tx: ParsedConfirmedTransaction, indx: number) => {
+						this._parseTransaction(tx);
 					}
-
-					for (
-						let i = 0;
-						i < tx.transaction.message.instructions.length;
-						i++
-					) {
-						const ins = tx.transaction.message.instructions[i];
-
-						console.log(
-							"instruction programId:",
-							ins.programId.toString()
-						);
-
-						if (ins.parsed) {
-							console.log(
-								"parsed",
-								ins.parsed.type,
-								ins.parsed.info
-							);
-						} else if (ins.data) {
-							console.log("data:", ins.data);
-
-							// const aid: DataAccount = borsh.deserialize(
-							// 	DataSchema,
-							// 	DataAccount,
-							// 	ins.data
-							// );
-
-							// console.log(aid);
-
-							if (ins.accounts) {
-								console.log(
-									"acounts",
-									ins.accounts[0].toString()
-								);
-
-								this.getSolanaConn
-									.getAccountInfo(ins.accounts[0])
-									.then(
-										(accountInfo: AccountInfo<Buffer>) => {
-											console.log(
-												"AccountInfo",
-												accountInfo
-											);
-
-											try {
-												const aid: DataAccount =
-													borsh.deserialize(
-														DataSchema,
-														DataAccount,
-														accountInfo
-													);
-
-												console.log("account aid", aid);
-											} catch (e) {
-												console.log("error", e);
-											}
-										}
-									);
-							}
-						} else {
-							console.log("unknown", ins);
-						}
-					}
-				});
-
-				// console.log(parsedConfirmedTransactions);
+				);
 			})();
+		},
+		likePost(e: Event) {
+			// likeAccountList is a list of publickey,
+			// 1.post creator, 2.first liked user, 3.second liked user, 4.third liked user, ...
+			// we have to option, one is transfer lamport to post account,
+			// and let the post account transfer to likeAccountList in the like program
+			// another is pass wallet as signer together with the likeAccountList to like program
+			// do transfer in the program, not sure this is gonna work
 		},
 		createDerivedAccount(e: Event) {
 			const space = 43 + 4; // plus 4 due to some data diffs between client and program
@@ -265,6 +205,58 @@ export default defineComponent({
 					}
 				});
 		},
+		_parseTransaction(tx: ParsedConfirmedTransaction) {
+			let msg = "";
+			const ins = tx.transaction.message.instructions[0];
+			const accountKeys: ParsedMessageAccount[] =
+				tx.transaction.message.accountKeys;
+
+			if (ins.parsed) {
+				// create new account action
+				if (ins.parsed.type == "createAccountWithSeed") {
+					msg +=
+						"<strong>Create Account with seed: " +
+						ins.parsed.info.seed +
+						".</strong>";
+				}
+			} else if (ins.programId.toString() == POST_PROGRAM_ID) {
+				// make new post action, save post arweaveid to account
+				msg += "<strong>Make post.</strong>";
+
+				const postAuthor = accountKeys[0];
+
+				if (!postAuthor.signer) {
+					pop_error("first account key is not a signer");
+				}
+
+				this.likeAccountList.push(postAuthor.pubkey);
+			} else {
+				console.log("Unknow action", ins);
+
+				msg += "<strong>Unknow action.</strong>";
+			}
+
+			msg += timestampToString(tx.blockTime);
+
+			accountKeys.forEach((ak) => {
+				let pkStr = ak.pubkey.toString();
+
+				if (pkStr == this.wallet.publicKey.toString()) {
+					msg += "<p>Wallet public key: " + pkStr + "</p>";
+				} else if (pkStr == POST_PROGRAM_ID) {
+					msg += "<p>Post program public key: " + pkStr + "</p>";
+				} else if (pkStr == this.derivedPubkeyStr) {
+					msg +=
+						"<p>Derived post account public key: " + pkStr + "</p>";
+				} else if (pkStr == "11111111111111111111111111111111") {
+					msg += "<p>System program: " + pkStr + "</p>";
+				} else {
+					msg += "<p>Unknown public key: " + pkStr + "</p>";
+				}
+			});
+
+			this.transactinHistory.push(msg);
+		},
 	},
 });
 </script>
@@ -306,8 +298,14 @@ export default defineComponent({
 			<button @click="getPostAccountHistory">
 				get post account history
 			</button>
+			<div v-for="msg in transactinHistory">
+				<div v-html="msg"></div>
+			</div>
 		</div>
-		<div></div>
+		<div>
+			<button @click="likePost">like post</button>
+			<div></div>
+		</div>
 		<div>
 			<button @click="createDerivedAccount">
 				create account with seed
@@ -356,12 +354,17 @@ export default defineComponent({
 	grid-template-columns: repeat(2, 1fr);
 }
 
-.grid div {
-	height: 300px;
+.grid > div {
+	min-height: 100px;
 }
 
 .grid div textarea {
 	width: 100%;
 	height: 100%;
+}
+</style>
+<style>
+p {
+	margin: 4px 0;
 }
 </style>

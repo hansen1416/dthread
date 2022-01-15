@@ -28,3 +28,14 @@ export function sleep(ms: number) {
 	}
 	return;
 }
+
+export function timestampToString(timestamp: number): string {
+	if (!timestamp) {
+		return "";
+	}
+	return (
+		new Date(timestamp * 1000).toLocaleDateString("en-US") +
+		" " +
+		new Date(timestamp * 1000).toLocaleTimeString("en-US")
+	);
+}
