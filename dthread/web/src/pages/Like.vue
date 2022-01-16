@@ -9,6 +9,7 @@ import {
 	LAMPORTS_PER_SOL,
 	MAX_SEED_LENGTH,
 	SignatureResult,
+	Transaction,
 	TransactionError,
 	ParsedConfirmedTransaction,
 	ParsedMessageAccount,
@@ -22,9 +23,11 @@ import {
 	sleep,
 	timestampToString,
 } from "../helpers/index";
-import { POST_PROGRAM_ID } from "../constants/index";
+import { POST_PROGRAM_ID, LIKE_PROGRAM_ID } from "../constants/index";
 import { createFromSeed } from "../solana/account";
 import { saveData } from "../solana/data";
+import { likePost } from "../solana/like";
+import { signAndConfirmTransaction } from "../solana/transaction";
 import arweaveService from "../arweave/index";
 
 export default defineComponent({
@@ -47,7 +50,8 @@ export default defineComponent({
 			derivedAccountInfo: undefined as AccountInfo,
 			ArweaveId: "Ar7SU71Gq4opQUiesBrZ9KaqV84ZAFp7e8hwJwgtoRb",
 			transactinHistory: [],
-			derivedPubkeyStr: "5BDnrWZpYiPKWpMieu9U1HgbDJTNanTqs6cFf6ywgsZx",
+			// derivedPubkeyStr: "5BDnrWZpYiPKWpMieu9U1HgbDJTNanTqs6cFf6ywgsZx",
+			derivedPubkeyStr: "DWPqyHBbrLyihq2wJXGbe3SkL5zNn8VoS33PnM8xYirK",
 			likeAccountList: [],
 		};
 	},
@@ -65,6 +69,9 @@ export default defineComponent({
 		},
 		postProgramId() {
 			return new PublicKey(POST_PROGRAM_ID);
+		},
+		likeProgramId() {
+			return new PublicKey(LIKE_PROGRAM_ID);
 		},
 	},
 	methods: {
@@ -117,6 +124,57 @@ export default defineComponent({
 				);
 			})();
 		},
+		async _createLikeAccount() {
+			const authorPubkey = new PublicKey(
+				"8EDkN9f3mie9CUKYJET1EsLnTDB7tSABdt67hKFYJqFN"
+			);
+
+			const seed = "post123456_like";
+			const space = 0;
+			const pubkey = await PublicKey.createWithSeed(
+				authorPubkey,
+				seed,
+				this.likeProgramId
+			);
+
+			const accountInfo = await this.getSolanaConn.getAccountInfo(pubkey);
+
+			const lamports =
+				await this.getSolanaConn.getMinimumBalanceForRentExemption(
+					space
+				);
+
+			if (accountInfo) {
+				console.log("like account info", accountInfo);
+				return pubkey;
+			}
+
+			const instruction: TransactionInstruction =
+				SystemProgram.createAccountWithSeed({
+					fromPubkey: this.wallet.publicKey,
+					basePubkey: this.wallet.publicKey,
+					seed: seed,
+					newAccountPubkey: pubkey,
+					lamports: lamports,
+					space: space,
+					programId: this.likeProgramId,
+				});
+
+			const transaction = new Transaction();
+
+			transaction.add(instruction);
+			transaction.feePayer = this.wallet.publicKey;
+
+			const res: SignatureResult = await signAndConfirmTransaction(
+				this.getSolanaConn,
+				this.wallet,
+				transaction
+			);
+
+			console.log(res);
+
+			return pubkey;
+		},
 		likePost(e: Event) {
 			// likeAccountList is a list of publickey,
 			// 1.post creator, 2.first liked user, 3.second liked user, 4.third liked user, ...
@@ -124,6 +182,74 @@ export default defineComponent({
 			// and let the post account transfer to likeAccountList in the like program
 			// another is pass wallet as signer together with the likeAccountList to like program
 			// do transfer in the program, not sure this is gonna work
+			const acc1 = new PublicKey(
+				"8EDkN9f3mie9CUKYJET1EsLnTDB7tSABdt67hKFYJqFN"
+			);
+			const acc2 = new PublicKey(
+				"CL53P6J2hDRYFLCSun2zMcfsAYzUkUM1eGbzZK6y9z11"
+			);
+			const acc3 = new PublicKey(
+				"AeQpkELUs1JdRxmwy2Z8thNNwtDccDD2TZDJfm51ps1D"
+			);
+			const acc4 = new PublicKey(
+				"FRYy3jyZnZn1xLqJDt27PZDELRJqeBQQ4PtVBX4nBA7P"
+			);
+
+			(async () => {
+				const likeAccountPubKey = await this._createLikeAccount();
+
+				// console.log(likeAccountPubKey);
+				if (false) {
+					// transfer lamports to like account
+					// when like, first tansfer users lamports to likeAccount
+					const instruction = SystemProgram.transfer({
+						fromPubkey: this.wallet.publicKey!,
+						toPubkey: likeAccountPubKey,
+						lamports: 1000,
+					});
+
+					const transaction = new Transaction();
+
+					transaction.add(instruction);
+					transaction.feePayer = this.wallet.publicKey;
+
+					const res: SignatureResult =
+						await signAndConfirmTransaction(
+							this.getSolanaConn,
+							this.wallet,
+							transaction
+						);
+
+					console.log(res);
+				}
+
+				const acinfo1: AccountInfo<Buffer> =
+					await this.getSolanaConn.getAccountInfo(acc1);
+
+				const acinfo2: AccountInfo<Buffer> =
+					await this.getSolanaConn.getAccountInfo(acc2);
+
+				const acinfo3: AccountInfo<Buffer> =
+					await this.getSolanaConn.getAccountInfo(acc3);
+
+				const acinfo4: AccountInfo<Buffer> =
+					await this.getSolanaConn.getAccountInfo(acc4);
+
+				console.log(acinfo1, acinfo2, acinfo3, acinfo4);
+
+				if (false) {
+					// transfer lamports
+					const likeRes = await likePost(
+						this.getSolanaConn,
+						this.wallet,
+						[likeAccountPubKey, acc1, acc2, acc3],
+						// [acc1, acc2, acc3],
+						new PublicKey(LIKE_PROGRAM_ID)
+					);
+
+					console.log(likeRes);
+				}
+			})();
 		},
 		createDerivedAccount(e: Event) {
 			const space = 43 + 4; // plus 4 due to some data diffs between client and program
