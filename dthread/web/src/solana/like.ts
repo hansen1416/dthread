@@ -6,9 +6,7 @@ import {
 	TransactionInstruction,
 	Transaction,
 } from "@solana/web3.js";
-import * as borsh from "borsh";
 import { WalletAdapter } from "../interfaces/index";
-import { DataAccount, DataSchema } from "../constants/index";
 import { signAndConfirmTransaction } from "./transaction";
 
 export async function likePost(

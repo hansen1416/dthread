@@ -23,7 +23,7 @@ import {
 	sleep,
 	timestampToString,
 } from "../helpers/index";
-import { POST_PROGRAM_ID, LIKE_PROGRAM_ID } from "../constants/index";
+import { LIKE_PROGRAM_ID } from "../constants/index";
 import { createFromSeed } from "../solana/account";
 import { saveData } from "../solana/data";
 import { likePost } from "../solana/like";
@@ -48,8 +48,8 @@ export default defineComponent({
 			likeAccountPubkey: undefined as PublicKey,
 			likeAccountInfo: undefined as AccountInfo,
 			transactinHistory: [],
-			likeAccountList: [undefined, undefined, undefined, undefined],
-			likeAccountInfoList: [undefined, undefined, undefined, undefined],
+			likeAccountList: [],
+			likeAccountInfoList: [],
 		};
 	},
 	computed: {
@@ -64,9 +64,7 @@ export default defineComponent({
 		lamportsSol() {
 			return LAMPORTS_PER_SOL;
 		},
-		postProgramId() {
-			return new PublicKey(POST_PROGRAM_ID);
-		},
+
 		likeProgramId() {
 			return new PublicKey(LIKE_PROGRAM_ID);
 		},
@@ -94,6 +92,7 @@ export default defineComponent({
 
 		getLikeAccountHistory(e: Event) {
 			this.transactinHistory = [];
+			this.likeAccountList = [this.likeAccountPubkey];
 			(async () => {
 				// assume we already heave an account store post data
 				// this.likeAccountPubkey
@@ -139,7 +138,7 @@ export default defineComponent({
 					const instruction = SystemProgram.transfer({
 						fromPubkey: this.wallet.publicKey!,
 						toPubkey: this.likeAccountPubkey,
-						lamports: 10,
+						lamports: (this.likeAccountList.length - 1) * 10,
 					});
 
 					const transaction = new Transaction();
@@ -189,6 +188,12 @@ export default defineComponent({
 				this.likeProgramId
 			);
 
+			if (this.likeAccountList[0]) {
+				this.likeAccountList[0] = this.likeAccountPubkey;
+			} else {
+				this.likeAccountList.push(this.likeAccountPubkey);
+			}
+
 			this.likeAccountInfo = await this.getSolanaConn.getAccountInfo(
 				this.likeAccountPubkey
 			);
@@ -229,20 +234,84 @@ export default defineComponent({
 			return this.likeAccountPubkey;
 		},
 		async _updateLikeAccountList() {
-			const arr = [
-				this.likeAccountPubkey,
-				new PublicKey("8EDkN9f3mie9CUKYJET1EsLnTDB7tSABdt67hKFYJqFN"),
-				new PublicKey("CL53P6J2hDRYFLCSun2zMcfsAYzUkUM1eGbzZK6y9z11"),
-				new PublicKey("AeQpkELUs1JdRxmwy2Z8thNNwtDccDD2TZDJfm51ps1D"),
-			];
-
-			for (let i in arr) {
-				this.likeAccountList[i] = arr[i];
-
-				let accinfo = await this.getSolanaConn.getAccountInfo(arr[i]);
-
-				this.likeAccountInfoList[i] = accinfo;
+			for (let i in this.likeAccountList) {
+				this.likeAccountInfoList[i] =
+					await this.getSolanaConn.getAccountInfo(
+						this.likeAccountList[i]
+					);
 			}
+		},
+		_parseTransaction(tx: ParsedConfirmedTransaction) {
+			let msg = "";
+			const ins = tx.transaction.message.instructions[0];
+			const accountKeys: ParsedMessageAccount[] =
+				tx.transaction.message.accountKeys;
+
+			if (ins.programId.toString() == LIKE_PROGRAM_ID) {
+				// make new post action, save post arweaveid to account
+				msg += "<strong>Like post.</strong>";
+
+				const postAuthor = accountKeys[0];
+
+				if (!postAuthor.signer) {
+					pop_error("first account key is not a signer");
+				}
+				// first like action
+				if (this.likeAccountList.length == 1) {
+					for (let i = 2; i < accountKeys.length - 1; i++) {
+						if (
+							!this.likeAccountList.includes(
+								accountKeys[i].pubkey
+							)
+						) {
+							this.likeAccountList.push(accountKeys[i].pubkey);
+						}
+					}
+					if (!this.likeAccountList.includes(accountKeys[0].pubkey)) {
+						// signer account is the last liked user
+						this.likeAccountList.push(accountKeys[0].pubkey);
+					}
+				}
+			} else if (ins.parsed) {
+				// create new account action
+
+				msg +=
+					"<strong>System program action: " +
+					ins.parsed.type +
+					".</strong>";
+				if (ins.parsed.type == "createAccountWithSeed") {
+					const authorPubkey = new PublicKey(ins.parsed.info.base);
+
+					if (this.likeAccountList.length == 1) {
+						this.likeAccountList.push(authorPubkey);
+					}
+				}
+			} else {
+				console.log("Unknow action", ins);
+
+				msg += "<strong>Unknow action.</strong>";
+			}
+
+			msg += timestampToString(tx.blockTime);
+
+			accountKeys.forEach((ak) => {
+				let pkStr = ak.pubkey.toString();
+
+				if (pkStr == this.wallet.publicKey.toString()) {
+					msg += "<p>Wallet public key: " + pkStr + "</p>";
+				} else if (pkStr == LIKE_PROGRAM_ID) {
+					msg += "<p>Like program public key: " + pkStr + "</p>";
+				} else if (pkStr == this.derivedPubkeyStr) {
+					msg +=
+						"<p>Derived post account public key: " + pkStr + "</p>";
+				} else if (pkStr == "11111111111111111111111111111111") {
+					msg += "<p>System program: " + pkStr + "</p>";
+				} else {
+					msg += "<p>Unknown public key: " + pkStr + "</p>";
+				}
+			});
+
+			this.transactinHistory.push(msg);
 		},
 		_updateWalletInfo() {
 			if (this.wallet && this.wallet.publicKey) {
@@ -263,70 +332,6 @@ export default defineComponent({
 			} else {
 				pop_info("public key is not defined");
 			}
-		},
-		_parseTransaction(tx: ParsedConfirmedTransaction) {
-			let msg = "";
-			const ins = tx.transaction.message.instructions[0];
-			const accountKeys: ParsedMessageAccount[] =
-				tx.transaction.message.accountKeys;
-
-			if (ins.parsed) {
-				// create new account action
-
-				msg +=
-					"<strong>System program action: " +
-					ins.parsed.type +
-					".</strong>";
-			} else if (ins.programId.toString() == POST_PROGRAM_ID) {
-				// make new post action, save post arweaveid to account
-				msg += "<strong>Make post.</strong>";
-
-				const postAuthor = accountKeys[0];
-
-				if (!postAuthor.signer) {
-					pop_error("first account key is not a signer");
-				}
-
-				this.likeAccountList.push(postAuthor.pubkey);
-			} else if (ins.programId.toString() == LIKE_PROGRAM_ID) {
-				// make new post action, save post arweaveid to account
-				msg += "<strong>Like post.</strong>";
-
-				// const postAuthor = accountKeys[0];
-
-				// if (!postAuthor.signer) {
-				// 	pop_error("first account key is not a signer");
-				// }
-
-				// this.likeAccountList.push(postAuthor.pubkey);
-			} else {
-				console.log("Unknow action", ins);
-
-				msg += "<strong>Unknow action.</strong>";
-			}
-
-			msg += timestampToString(tx.blockTime);
-
-			accountKeys.forEach((ak) => {
-				let pkStr = ak.pubkey.toString();
-
-				if (pkStr == this.wallet.publicKey.toString()) {
-					msg += "<p>Wallet public key: " + pkStr + "</p>";
-				} else if (pkStr == POST_PROGRAM_ID) {
-					msg += "<p>Post program public key: " + pkStr + "</p>";
-				} else if (pkStr == LIKE_PROGRAM_ID) {
-					msg += "<p>Like program public key: " + pkStr + "</p>";
-				} else if (pkStr == this.derivedPubkeyStr) {
-					msg +=
-						"<p>Derived post account public key: " + pkStr + "</p>";
-				} else if (pkStr == "11111111111111111111111111111111") {
-					msg += "<p>System program: " + pkStr + "</p>";
-				} else {
-					msg += "<p>Unknown public key: " + pkStr + "</p>";
-				}
-			});
-
-			this.transactinHistory.push(msg);
 		},
 	},
 });

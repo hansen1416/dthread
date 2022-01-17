@@ -28,20 +28,27 @@ pub fn process_instruction(
     msg!("start transfer lamports");
     // Create an iterator to safely reference accounts in the slice
     let account_info_iter = &mut accounts.iter();
+    let tt = account_info_iter.len();
+    let sh = 10;
+    let wd = sh * (tt - 1) as u64;
 
-    // As part of the program specification the first account is the source
-    // account and the second is the destination account
-    let source_info = next_account_info(account_info_iter)?;
-    let destination_info1 = next_account_info(account_info_iter)?;
-    let destination_info2 = next_account_info(account_info_iter)?;
-    let destination_info3 = next_account_info(account_info_iter)?;
+    msg!("total accounts {}, share {}, total lamports {}", tt, sh, wd);
 
-    // Withdraw five lamports from the source
-    **source_info.try_borrow_mut_lamports()? -= 10;
-    // Deposit five lamports into the destination
-    **destination_info1.try_borrow_mut_lamports()? += 4;
-    **destination_info2.try_borrow_mut_lamports()? += 3;
-    **destination_info3.try_borrow_mut_lamports()? += 3;
+    for i in 0..tt {
+        // todo check duplicates
+        if i == 0 {
+            // As part of the program specification the first account is the source account
+            // the other accounts are the destination accounts
+            let source_info = next_account_info(account_info_iter)?;
+
+            // Withdraw five lamports from the source
+            **source_info.try_borrow_mut_lamports()? -= wd;
+        } else {
+            let destination_info = next_account_info(account_info_iter)?;
+            // Deposit five lamports into the destination
+            **destination_info.try_borrow_mut_lamports()? += sh;
+        }
+    }
 
     msg!("finish transfer lamports");
 
