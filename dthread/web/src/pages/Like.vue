@@ -180,7 +180,7 @@ export default defineComponent({
 				"8EDkN9f3mie9CUKYJET1EsLnTDB7tSABdt67hKFYJqFN"
 			);
 
-			const seed = "post123456_like";
+			const seed = "post12345_like";
 			const space = 0;
 			this.likeAccountPubkey = await PublicKey.createWithSeed(
 				authorPubkey,
