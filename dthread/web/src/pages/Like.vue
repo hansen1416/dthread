@@ -35,11 +35,9 @@ export default defineComponent({
 		solanaConn: Connection;
 		wallet: PhantomWallet;
 		walletAccountInfo: AccountInfo;
-		derivedPubkey: PublicKey;
-		derivedAccountInfo: AccountInfo;
-		ArweaveId: string;
+		likeAccountPubkey: PublicKey;
+		likeAccountInfo: AccountInfo;
 		transactinHistory: string[];
-		derivedPubkeyStr: string;
 		likeAccountList: PublicKey[];
 		likeAccountInfoList: AccountInfo[];
 	} {
@@ -47,12 +45,9 @@ export default defineComponent({
 			solanaConn: undefined as Connection,
 			wallet: undefined as PhantomWallet,
 			walletAccountInfo: undefined as AccountInfo,
-			derivedPubkey: undefined as PublicKey,
-			derivedAccountInfo: undefined as AccountInfo,
-			ArweaveId: "Ar7SU71Gq4opQUiesBrZ9KaqV84ZAFp7e8hwJwgtoRb",
+			likeAccountPubkey: undefined as PublicKey,
+			likeAccountInfo: undefined as AccountInfo,
 			transactinHistory: [],
-			// derivedPubkeyStr: "5BDnrWZpYiPKWpMieu9U1HgbDJTNanTqs6cFf6ywgsZx",
-			derivedPubkeyStr: "DWPqyHBbrLyihq2wJXGbe3SkL5zNn8VoS33PnM8xYirK",
 			likeAccountList: [undefined, undefined, undefined, undefined],
 			likeAccountInfoList: [undefined, undefined, undefined, undefined],
 		};
@@ -101,15 +96,12 @@ export default defineComponent({
 			this.transactinHistory = [];
 			(async () => {
 				// assume we already heave an account store post data
-				const likeAccountPubKey = await this._createLikeAccount();
-
-				console.log(likeAccountPubKey);
-
+				// this.likeAccountPubkey
 				const limit = 1000;
 
 				const confirmedSignatureInfo =
 					await this.getSolanaConn.getSignaturesForAddress(
-						likeAccountPubKey,
+						this.likeAccountPubkey,
 						{ limit }
 					);
 
@@ -139,16 +131,14 @@ export default defineComponent({
 			// do transfer in the program, not sure this is gonna work
 
 			(async () => {
-				const likeAccountPubKey = await this._createLikeAccount();
-
-				await this._updateLikeAccountList(likeAccountPubKey);
+				await this._updateLikeAccountList();
 
 				if (true) {
 					// transfer lamports to like account
 					// when like, first tansfer users lamports to likeAccount
 					const instruction = SystemProgram.transfer({
 						fromPubkey: this.wallet.publicKey!,
-						toPubkey: likeAccountPubKey,
+						toPubkey: this.likeAccountPubkey,
 						lamports: 10,
 					});
 
@@ -169,7 +159,7 @@ export default defineComponent({
 
 				this._updateWalletInfo();
 
-				this._updateLikeAccountList(likeAccountPubKey);
+				this._updateLikeAccountList();
 
 				if (true) {
 					// transfer lamports
@@ -183,72 +173,33 @@ export default defineComponent({
 
 				this._updateWalletInfo();
 
-				this._updateLikeAccountList(likeAccountPubKey);
+				this._updateLikeAccountList();
 			})();
 		},
-		createDerivedAccount(e: Event) {
-			const space = 43 + 4; // plus 4 due to some data diffs between client and program
-
-			(async () => {
-				if (this.wallet == undefined) {
-					this.wallet = new PhantomWallet();
-
-					await this.wallet.connect();
-				}
-
-				this.derivedPubkey = await createFromSeed(
-					this.getSolanaConn,
-					this.wallet,
-					this.postProgramId,
-					"post_account",
-					space
-				);
-
-				this._updateWalletInfo();
-				this._updateDataAccountInfo();
-			})();
-		},
-		saveArweaveId(e: Event) {
-			saveData(
-				this.getSolanaConn,
-				this.wallet,
-				this.derivedPubkey,
-				this.postProgramId,
-				this.ArweaveId
-			)
-				.then((res: SignatureResult) => {
-					console.log(res);
-
-					this._updateWalletInfo();
-					this._updateDataAccountInfo();
-				})
-				.catch((e: TransactionError) => {
-					console.error(e);
-				});
-		},
-		async _createLikeAccount() {
+		async getLikeAccount(e: Event) {
 			const authorPubkey = new PublicKey(
 				"8EDkN9f3mie9CUKYJET1EsLnTDB7tSABdt67hKFYJqFN"
 			);
 
 			const seed = "post123456_like";
 			const space = 0;
-			const pubkey = await PublicKey.createWithSeed(
+			this.likeAccountPubkey = await PublicKey.createWithSeed(
 				authorPubkey,
 				seed,
 				this.likeProgramId
 			);
 
-			const accountInfo = await this.getSolanaConn.getAccountInfo(pubkey);
+			this.likeAccountInfo = await this.getSolanaConn.getAccountInfo(
+				this.likeAccountPubkey
+			);
 
 			const lamports =
 				await this.getSolanaConn.getMinimumBalanceForRentExemption(
 					space
 				);
 
-			if (accountInfo) {
-				console.log("like account info", accountInfo);
-				return pubkey;
+			if (this.likeAccountInfo) {
+				return this.likeAccountPubkey;
 			}
 
 			const instruction: TransactionInstruction =
@@ -256,7 +207,7 @@ export default defineComponent({
 					fromPubkey: this.wallet.publicKey,
 					basePubkey: this.wallet.publicKey,
 					seed: seed,
-					newAccountPubkey: pubkey,
+					newAccountPubkey: this.likeAccountPubkey,
 					lamports: lamports,
 					space: space,
 					programId: this.likeProgramId,
@@ -273,13 +224,13 @@ export default defineComponent({
 				transaction
 			);
 
-			console.log(res);
+			// console.log(res);
 
-			return pubkey;
+			return this.likeAccountPubkey;
 		},
-		async _updateLikeAccountList(likeAccount: PublicKey) {
+		async _updateLikeAccountList() {
 			const arr = [
-				likeAccount,
+				this.likeAccountPubkey,
 				new PublicKey("8EDkN9f3mie9CUKYJET1EsLnTDB7tSABdt67hKFYJqFN"),
 				new PublicKey("CL53P6J2hDRYFLCSun2zMcfsAYzUkUM1eGbzZK6y9z11"),
 				new PublicKey("AeQpkELUs1JdRxmwy2Z8thNNwtDccDD2TZDJfm51ps1D"),
@@ -313,26 +264,6 @@ export default defineComponent({
 				pop_info("public key is not defined");
 			}
 		},
-		_updateDataAccountInfo() {
-			this.getSolanaConn
-				.getAccountInfo(this.derivedPubkey)
-				.then((accountInfo: AccountInfo<Buffer>) => {
-					this.derivedAccountInfo = accountInfo;
-
-					try {
-						const aid: DataAccount = borsh.deserialize(
-							DataSchema,
-							DataAccount,
-							this.derivedAccountInfo.data
-						);
-
-						this.derivedAccountData = aid.id;
-					} catch (e) {
-						this.derivedAccountData =
-							this.derivedAccountInfo.data.toString("hex");
-					}
-				});
-		},
 		_parseTransaction(tx: ParsedConfirmedTransaction) {
 			let msg = "";
 			const ins = tx.transaction.message.instructions[0];
@@ -341,12 +272,11 @@ export default defineComponent({
 
 			if (ins.parsed) {
 				// create new account action
-				if (ins.parsed.type == "createAccountWithSeed") {
-					msg +=
-						"<strong>Create Account with seed: " +
-						ins.parsed.info.seed +
-						".</strong>";
-				}
+
+				msg +=
+					"<strong>System program action: " +
+					ins.parsed.type +
+					".</strong>";
 			} else if (ins.programId.toString() == POST_PROGRAM_ID) {
 				// make new post action, save post arweaveid to account
 				msg += "<strong>Make post.</strong>";
@@ -358,6 +288,17 @@ export default defineComponent({
 				}
 
 				this.likeAccountList.push(postAuthor.pubkey);
+			} else if (ins.programId.toString() == LIKE_PROGRAM_ID) {
+				// make new post action, save post arweaveid to account
+				msg += "<strong>Like post.</strong>";
+
+				// const postAuthor = accountKeys[0];
+
+				// if (!postAuthor.signer) {
+				// 	pop_error("first account key is not a signer");
+				// }
+
+				// this.likeAccountList.push(postAuthor.pubkey);
 			} else {
 				console.log("Unknow action", ins);
 
@@ -373,6 +314,8 @@ export default defineComponent({
 					msg += "<p>Wallet public key: " + pkStr + "</p>";
 				} else if (pkStr == POST_PROGRAM_ID) {
 					msg += "<p>Post program public key: " + pkStr + "</p>";
+				} else if (pkStr == LIKE_PROGRAM_ID) {
+					msg += "<p>Like program public key: " + pkStr + "</p>";
 				} else if (pkStr == this.derivedPubkeyStr) {
 					msg +=
 						"<p>Derived post account public key: " + pkStr + "</p>";
@@ -421,11 +364,30 @@ export default defineComponent({
 			</div>
 		</div>
 		<div>
-			<button @click="getLikeAccountHistory">
-				get like account history
+			<button @click="getLikeAccount">
+				get like account (with seed)
 			</button>
-			<div v-for="msg in transactinHistory">
-				<div v-html="msg"></div>
+			<div v-if="likeAccountInfo">
+				<p>
+					public key is
+					<strong>{{ likeAccountPubkey.toString() }}</strong>
+				</p>
+				<p>
+					account owner is program id
+					<strong>{{ likeAccountInfo.owner.toString() }}</strong>
+				</p>
+				<p>
+					wallet balance is:
+					<strong
+						>{{ likeAccountInfo.lamports / lamportsSol }}
+					</strong>
+					SOL
+				</p>
+				<p>
+					account data length is
+					<strong>{{ likeAccountInfo.data.byteLength }}</strong>
+					bytes
+				</p>
 			</div>
 		</div>
 		<div>
@@ -440,43 +402,11 @@ export default defineComponent({
 			</div>
 		</div>
 		<div>
-			<button @click="createDerivedAccount">
-				create account with seed
+			<button @click="getLikeAccountHistory">
+				get like account history
 			</button>
-			<div v-if="derivedAccountInfo">
-				<p>
-					public key is
-					<strong>{{ derivedPubkey.toString() }}</strong>
-				</p>
-				<p>
-					account owner is program id
-					<strong>{{ derivedAccountInfo.owner.toString() }}</strong>
-				</p>
-				<p>
-					wallet balance is:
-					<strong
-						>{{ derivedAccountInfo.lamports / lamportsSol }}
-					</strong>
-					SOL
-				</p>
-				<p>
-					account data length is
-					<strong>{{ derivedAccountInfo.data.byteLength }}</strong>
-					bytes
-				</p>
-				<p>
-					account data:
-					<strong>{{ derivedAccountData }}</strong>
-				</p>
-			</div>
-		</div>
-		<div>
-			<button @click="saveArweaveId">send arweaveid to account</button>
-			<div v-if="ArweaveId">
-				<p>
-					save Arweave id:
-					<strong>{{ ArweaveId }}</strong>
-				</p>
+			<div v-for="msg in transactinHistory">
+				<div v-html="msg"></div>
 			</div>
 		</div>
 	</div>
