@@ -43,6 +43,7 @@ export async function likePost(
 	const transaction = new Transaction().add(instruction);
 
 	transaction.feePayer = walletAdapter.publicKey!;
+	// transaction.feePayer = accountKeys[0];
 
 	// console.log(transaction);
 

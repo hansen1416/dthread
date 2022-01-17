@@ -3,9 +3,9 @@ use solana_program::{
     account_info::{next_account_info, AccountInfo},
     entrypoint,
     entrypoint::ProgramResult,
-    log::sol_log_compute_units,
+    // log::sol_log_compute_units,
     msg,
-    program_error::ProgramError,
+    // program_error::ProgramError,
     pubkey::Pubkey,
 };
 
@@ -21,9 +21,9 @@ entrypoint!(process_instruction);
 
 // Program entrypoint's implementation
 pub fn process_instruction(
-    program_id: &Pubkey, // Public key of the account the hello world program was loaded into
+    _program_id: &Pubkey, // Public key of the account the hello world program was loaded into
     accounts: &[AccountInfo], // The account to say hello to
-    instruction_data: &[u8], // Ignored, all helloworld instructions are hellos
+    _instruction_data: &[u8], // Ignored, all helloworld instructions are hellos
 ) -> ProgramResult {
     msg!("start transfer lamports");
     // Create an iterator to safely reference accounts in the slice
@@ -37,11 +37,11 @@ pub fn process_instruction(
     let destination_info3 = next_account_info(account_info_iter)?;
 
     // Withdraw five lamports from the source
-    **source_info.try_borrow_mut_lamports()? -= 1000;
+    **source_info.try_borrow_mut_lamports()? -= 10;
     // Deposit five lamports into the destination
-    **destination_info1.try_borrow_mut_lamports()? += 400;
-    **destination_info2.try_borrow_mut_lamports()? += 300;
-    **destination_info3.try_borrow_mut_lamports()? += 300;
+    **destination_info1.try_borrow_mut_lamports()? += 4;
+    **destination_info2.try_borrow_mut_lamports()? += 3;
+    **destination_info3.try_borrow_mut_lamports()? += 3;
 
     msg!("finish transfer lamports");
 

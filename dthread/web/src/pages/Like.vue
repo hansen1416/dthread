@@ -40,7 +40,8 @@ export default defineComponent({
 		ArweaveId: string;
 		transactinHistory: string[];
 		derivedPubkeyStr: string;
-		likeAccountList: string[];
+		likeAccountList: PublicKey[];
+		likeAccountInfoList: AccountInfo[];
 	} {
 		return {
 			solanaConn: undefined as Connection,
@@ -52,7 +53,8 @@ export default defineComponent({
 			transactinHistory: [],
 			// derivedPubkeyStr: "5BDnrWZpYiPKWpMieu9U1HgbDJTNanTqs6cFf6ywgsZx",
 			derivedPubkeyStr: "DWPqyHBbrLyihq2wJXGbe3SkL5zNn8VoS33PnM8xYirK",
-			likeAccountList: [],
+			likeAccountList: [undefined, undefined, undefined, undefined],
+			likeAccountInfoList: [undefined, undefined, undefined, undefined],
 		};
 	},
 	computed: {
@@ -95,16 +97,19 @@ export default defineComponent({
 			this._updateWalletInfo();
 		},
 
-		getPostAccountHistory(e: Event) {
+		getLikeAccountHistory(e: Event) {
+			this.transactinHistory = [];
 			(async () => {
 				// assume we already heave an account store post data
-				const postAccountPubKey = new PublicKey(this.derivedPubkeyStr);
+				const likeAccountPubKey = await this._createLikeAccount();
+
+				console.log(likeAccountPubKey);
 
 				const limit = 1000;
 
 				const confirmedSignatureInfo =
 					await this.getSolanaConn.getSignaturesForAddress(
-						postAccountPubKey,
+						likeAccountPubKey,
 						{ limit }
 					);
 
@@ -123,6 +128,103 @@ export default defineComponent({
 					}
 				);
 			})();
+		},
+
+		likePost(e: Event) {
+			// likeAccountList is a list of publickey,
+			// 1.post creator, 2.first liked user, 3.second liked user, 4.third liked user, ...
+			// we have to option, one is transfer lamport to post account,
+			// and let the post account transfer to likeAccountList in the like program
+			// another is pass wallet as signer together with the likeAccountList to like program
+			// do transfer in the program, not sure this is gonna work
+
+			(async () => {
+				const likeAccountPubKey = await this._createLikeAccount();
+
+				await this._updateLikeAccountList(likeAccountPubKey);
+
+				if (true) {
+					// transfer lamports to like account
+					// when like, first tansfer users lamports to likeAccount
+					const instruction = SystemProgram.transfer({
+						fromPubkey: this.wallet.publicKey!,
+						toPubkey: likeAccountPubKey,
+						lamports: 10,
+					});
+
+					const transaction = new Transaction();
+
+					transaction.add(instruction);
+					transaction.feePayer = this.wallet.publicKey;
+
+					const res: SignatureResult =
+						await signAndConfirmTransaction(
+							this.getSolanaConn,
+							this.wallet,
+							transaction
+						);
+
+					console.log("transfer from wallet to like account", res);
+				}
+
+				this._updateWalletInfo();
+
+				this._updateLikeAccountList(likeAccountPubKey);
+
+				if (true) {
+					// transfer lamports
+					const likeRes = await likePost(
+						this.getSolanaConn,
+						this.wallet,
+						this.likeAccountList,
+						new PublicKey(LIKE_PROGRAM_ID)
+					);
+				}
+
+				this._updateWalletInfo();
+
+				this._updateLikeAccountList(likeAccountPubKey);
+			})();
+		},
+		createDerivedAccount(e: Event) {
+			const space = 43 + 4; // plus 4 due to some data diffs between client and program
+
+			(async () => {
+				if (this.wallet == undefined) {
+					this.wallet = new PhantomWallet();
+
+					await this.wallet.connect();
+				}
+
+				this.derivedPubkey = await createFromSeed(
+					this.getSolanaConn,
+					this.wallet,
+					this.postProgramId,
+					"post_account",
+					space
+				);
+
+				this._updateWalletInfo();
+				this._updateDataAccountInfo();
+			})();
+		},
+		saveArweaveId(e: Event) {
+			saveData(
+				this.getSolanaConn,
+				this.wallet,
+				this.derivedPubkey,
+				this.postProgramId,
+				this.ArweaveId
+			)
+				.then((res: SignatureResult) => {
+					console.log(res);
+
+					this._updateWalletInfo();
+					this._updateDataAccountInfo();
+				})
+				.catch((e: TransactionError) => {
+					console.error(e);
+				});
 		},
 		async _createLikeAccount() {
 			const authorPubkey = new PublicKey(
@@ -175,121 +277,21 @@ export default defineComponent({
 
 			return pubkey;
 		},
-		likePost(e: Event) {
-			// likeAccountList is a list of publickey,
-			// 1.post creator, 2.first liked user, 3.second liked user, 4.third liked user, ...
-			// we have to option, one is transfer lamport to post account,
-			// and let the post account transfer to likeAccountList in the like program
-			// another is pass wallet as signer together with the likeAccountList to like program
-			// do transfer in the program, not sure this is gonna work
-			const acc1 = new PublicKey(
-				"8EDkN9f3mie9CUKYJET1EsLnTDB7tSABdt67hKFYJqFN"
-			);
-			const acc2 = new PublicKey(
-				"CL53P6J2hDRYFLCSun2zMcfsAYzUkUM1eGbzZK6y9z11"
-			);
-			const acc3 = new PublicKey(
-				"AeQpkELUs1JdRxmwy2Z8thNNwtDccDD2TZDJfm51ps1D"
-			);
-			const acc4 = new PublicKey(
-				"FRYy3jyZnZn1xLqJDt27PZDELRJqeBQQ4PtVBX4nBA7P"
-			);
+		async _updateLikeAccountList(likeAccount: PublicKey) {
+			const arr = [
+				likeAccount,
+				new PublicKey("8EDkN9f3mie9CUKYJET1EsLnTDB7tSABdt67hKFYJqFN"),
+				new PublicKey("CL53P6J2hDRYFLCSun2zMcfsAYzUkUM1eGbzZK6y9z11"),
+				new PublicKey("AeQpkELUs1JdRxmwy2Z8thNNwtDccDD2TZDJfm51ps1D"),
+			];
 
-			(async () => {
-				const likeAccountPubKey = await this._createLikeAccount();
+			for (let i in arr) {
+				this.likeAccountList[i] = arr[i];
 
-				// console.log(likeAccountPubKey);
-				if (false) {
-					// transfer lamports to like account
-					// when like, first tansfer users lamports to likeAccount
-					const instruction = SystemProgram.transfer({
-						fromPubkey: this.wallet.publicKey!,
-						toPubkey: likeAccountPubKey,
-						lamports: 1000,
-					});
+				let accinfo = await this.getSolanaConn.getAccountInfo(arr[i]);
 
-					const transaction = new Transaction();
-
-					transaction.add(instruction);
-					transaction.feePayer = this.wallet.publicKey;
-
-					const res: SignatureResult =
-						await signAndConfirmTransaction(
-							this.getSolanaConn,
-							this.wallet,
-							transaction
-						);
-
-					console.log(res);
-				}
-
-				const acinfo1: AccountInfo<Buffer> =
-					await this.getSolanaConn.getAccountInfo(acc1);
-
-				const acinfo2: AccountInfo<Buffer> =
-					await this.getSolanaConn.getAccountInfo(acc2);
-
-				const acinfo3: AccountInfo<Buffer> =
-					await this.getSolanaConn.getAccountInfo(acc3);
-
-				const acinfo4: AccountInfo<Buffer> =
-					await this.getSolanaConn.getAccountInfo(acc4);
-
-				console.log(acinfo1, acinfo2, acinfo3, acinfo4);
-
-				if (false) {
-					// transfer lamports
-					const likeRes = await likePost(
-						this.getSolanaConn,
-						this.wallet,
-						[likeAccountPubKey, acc1, acc2, acc3],
-						// [acc1, acc2, acc3],
-						new PublicKey(LIKE_PROGRAM_ID)
-					);
-
-					console.log(likeRes);
-				}
-			})();
-		},
-		createDerivedAccount(e: Event) {
-			const space = 43 + 4; // plus 4 due to some data diffs between client and program
-
-			(async () => {
-				if (this.wallet == undefined) {
-					this.wallet = new PhantomWallet();
-
-					await this.wallet.connect();
-				}
-
-				this.derivedPubkey = await createFromSeed(
-					this.getSolanaConn,
-					this.wallet,
-					this.postProgramId,
-					"post_account",
-					space
-				);
-
-				this._updateWalletInfo();
-				this._updateDataAccountInfo();
-			})();
-		},
-		saveArweaveId(e: Event) {
-			saveData(
-				this.getSolanaConn,
-				this.wallet,
-				this.derivedPubkey,
-				this.postProgramId,
-				this.ArweaveId
-			)
-				.then((res: SignatureResult) => {
-					console.log(res);
-
-					this._updateWalletInfo();
-					this._updateDataAccountInfo();
-				})
-				.catch((e: TransactionError) => {
-					console.error(e);
-				});
+				this.likeAccountInfoList[i] = accinfo;
+			}
 		},
 		_updateWalletInfo() {
 			if (this.wallet && this.wallet.publicKey) {
@@ -408,9 +410,7 @@ export default defineComponent({
 				</p>
 				<p>
 					wallet balance is:
-					<strong
-						>{{ walletAccountInfo.lamports / lamportsSol }}
-					</strong>
+					<strong>{{ walletAccountInfo.lamports }} </strong>
 					SOL
 				</p>
 				<p>
@@ -421,8 +421,8 @@ export default defineComponent({
 			</div>
 		</div>
 		<div>
-			<button @click="getPostAccountHistory">
-				get post account history
+			<button @click="getLikeAccountHistory">
+				get like account history
 			</button>
 			<div v-for="msg in transactinHistory">
 				<div v-html="msg"></div>
@@ -430,7 +430,14 @@ export default defineComponent({
 		</div>
 		<div>
 			<button @click="likePost">like post</button>
-			<div></div>
+			<div>
+				<div v-for="(pk, indx) in likeAccountList">
+					<p v-if="pk">{{ pk.toString() }}</p>
+					<p v-if="likeAccountInfoList[indx]">
+						Balance: {{ likeAccountInfoList[indx].lamports }}
+					</p>
+				</div>
+			</div>
 		</div>
 		<div>
 			<button @click="createDerivedAccount">
