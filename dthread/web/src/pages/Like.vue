@@ -353,8 +353,10 @@ export default defineComponent({
 				</p>
 				<p>
 					wallet balance is:
-					<strong>{{ walletAccountInfo.lamports }} </strong>
-					SOL
+					<strong class="blue"
+						>{{ walletAccountInfo.lamports }}
+					</strong>
+					Lamports
 				</p>
 				<p>
 					account data length is
@@ -396,7 +398,10 @@ export default defineComponent({
 				<div v-for="(pk, indx) in likeAccountList">
 					<p v-if="pk">{{ pk.toString() }}</p>
 					<p v-if="likeAccountInfoList[indx]">
-						Balance: {{ likeAccountInfoList[indx].lamports }}
+						Balance:
+						<strong class="blue">{{
+							likeAccountInfoList[indx].lamports
+						}}</strong>
 					</p>
 				</div>
 			</div>
@@ -424,6 +429,10 @@ export default defineComponent({
 .grid div textarea {
 	width: 100%;
 	height: 100%;
+}
+
+.grid div .blue {
+	color: #0000ee;
 }
 </style>
 <style>
