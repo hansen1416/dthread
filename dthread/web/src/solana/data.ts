@@ -8,7 +8,7 @@ import {
 import * as borsh from "borsh";
 import { WalletAdapter } from "../interfaces/index";
 import { DataAccount, DataSchema } from "../constants/index";
-import { signAndConfirmTransaction } from "./transaction";
+import { walletSignAndConfirmTransaction } from "./transaction";
 
 export async function saveData(
 	conn: Connection,
@@ -34,5 +34,5 @@ export async function saveData(
 
 	transaction.feePayer = walletAdapter.publicKey!;
 
-	return signAndConfirmTransaction(conn, walletAdapter, transaction);
+	return walletSignAndConfirmTransaction(conn, walletAdapter, transaction);
 }

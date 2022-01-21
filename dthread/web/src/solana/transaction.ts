@@ -8,7 +8,7 @@ import {
 import { WalletAdapter } from "../interfaces/index";
 import { pop_error } from "../helpers/index";
 
-export async function signAndConfirmTransaction(
+export async function walletSignAndConfirmTransaction(
 	conn: Connection,
 	walletAdapter: WalletAdapter,
 	transaction: Transaction

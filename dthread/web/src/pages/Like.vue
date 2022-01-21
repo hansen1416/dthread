@@ -27,7 +27,7 @@ import { LIKE_PROGRAM_ID } from "../constants/index";
 import { createFromSeed } from "../solana/account";
 import { saveData } from "../solana/data";
 import { likePost } from "../solana/like";
-import { signAndConfirmTransaction } from "../solana/transaction";
+import { walletSignAndConfirmTransaction } from "../solana/transaction";
 import arweaveService from "../arweave/index";
 
 export default defineComponent({
@@ -147,7 +147,7 @@ export default defineComponent({
 					transaction.feePayer = this.wallet.publicKey;
 
 					const res: SignatureResult =
-						await signAndConfirmTransaction(
+						await walletSignAndConfirmTransaction(
 							this.getSolanaConn,
 							this.wallet,
 							transaction
@@ -180,7 +180,7 @@ export default defineComponent({
 				"8EDkN9f3mie9CUKYJET1EsLnTDB7tSABdt67hKFYJqFN"
 			);
 
-			const seed = "post12345_like";
+			const seed = "post1234_like";
 			const space = 0;
 			this.likeAccountPubkey = await PublicKey.createWithSeed(
 				authorPubkey,
@@ -223,7 +223,7 @@ export default defineComponent({
 			transaction.add(instruction);
 			transaction.feePayer = this.wallet.publicKey;
 
-			const res: SignatureResult = await signAndConfirmTransaction(
+			const res: SignatureResult = await walletSignAndConfirmTransaction(
 				this.getSolanaConn,
 				this.wallet,
 				transaction

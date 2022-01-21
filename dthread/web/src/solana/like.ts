@@ -7,7 +7,7 @@ import {
 	Transaction,
 } from "@solana/web3.js";
 import { WalletAdapter } from "../interfaces/index";
-import { signAndConfirmTransaction } from "./transaction";
+import { walletSignAndConfirmTransaction } from "./transaction";
 
 export async function likePost(
 	conn: Connection,
@@ -47,5 +47,5 @@ export async function likePost(
 
 	// return new Promise(() => {});
 
-	return signAndConfirmTransaction(conn, walletAdapter, transaction);
+	return walletSignAndConfirmTransaction(conn, walletAdapter, transaction);
 }

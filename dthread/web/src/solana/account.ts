@@ -8,7 +8,7 @@ import {
 	SignatureResult,
 } from "@solana/web3.js";
 import { WalletAdapter } from "../interfaces/index";
-import { signAndConfirmTransaction } from "./transaction";
+import { walletSignAndConfirmTransaction } from "./transaction";
 
 export async function createFromSeed(
 	conn: Connection,
@@ -72,7 +72,7 @@ export async function createFromSeed(
 	transaction.add(instruction);
 	transaction.feePayer = walletAdapter.publicKey!;
 
-	const res: SignatureResult = await signAndConfirmTransaction(
+	const res: SignatureResult = await walletSignAndConfirmTransaction(
 		conn,
 		walletAdapter,
 		transaction

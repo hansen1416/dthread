@@ -2,7 +2,8 @@
 	<div>
 		<router-link to="/">Home</router-link>|
 		<router-link to="/group">Group</router-link>|
-		<router-link to="/like">Like</router-link>
+		<router-link to="/like">Like</router-link>|
+		<router-link to="/deposit">Deposit</router-link>
 		<router-view v-slot="{ Component }">
 			<Suspense>
 				<component :is="Component" />
